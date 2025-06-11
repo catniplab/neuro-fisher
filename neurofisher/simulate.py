@@ -425,7 +425,8 @@ def gen_poisson(
         x = x / np.std(x, axis=0)
 
     d_latent = x.shape[1]
-    C = gen_C(d_latent, d_neurons, p_coh, p_sparse, C=C)
+    if C is None:
+        C = gen_C(d_latent, d_neurons, p_coh, p_sparse)
 
     b = 1.0 * np.random.rand(1, d_neurons) - np.log(tgt_rate)
     C, b, snr = scale_C(x, C, b, tgt_rate, tgt_snr=tgt_snr, snr_fn=snr_fn)

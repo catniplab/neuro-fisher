@@ -35,7 +35,6 @@ observations, loading_matrix, bias, firing_rate_per_bin, snr = gen_poisson(
     p_coh=p_coherence,
     p_sparse=p_sparse,
     tgt_snr=target_snr,
-    snr_fn=comp_instantaneous_snr,
 )
 
 # Plotting observations with latent trajectory
