@@ -2,8 +2,8 @@
 
 This repository contains the implementation for the paper:
 
-**Quantifying Signal-to-Noise Ratio in Neural Latent Trajectories via Fisher Information**  
-*Hyungju Jeon, Il Memming Park*  
+**Quantifying Signal-to-Noise Ratio in Neural Latent Trajectories via Fisher Information**. European Signal Processing Conference. EUSIPCO, Lyon, France.
+*Hyungju Jeon, Il Memming Park*
 [arXiv:2408.08752](https://arxiv.org/abs/2408.08752)
 
 ## Abstract
