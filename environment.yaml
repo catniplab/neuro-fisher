@@ -1,0 +1,10 @@
+name: neuro-fisher
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - numpy
+  - scipy
+  - matplotlib
+  - pip
