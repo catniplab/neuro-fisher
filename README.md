@@ -46,11 +46,11 @@ Check out the demo folder for examples.
 
 Demo for generating log-linear Poisson observations from GP latent trajectory given Fisher Information SNR bound:
 ```bash
-python demo/simulater_obs_from_gp.py
+python demo/simulate_observation_gp.py
 ```
 and from 2D Ring latent trajectory:
 ```bash
-python demo/simulater_obs_from_ring.py
+python demo/simulate_observation_ring.py
 ```
 
 ## Citation
