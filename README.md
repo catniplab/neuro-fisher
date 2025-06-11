@@ -75,10 +75,14 @@ python demo/simulate_observation_ring.py
 If you use this code in your research, please cite:
 
 ```bibtex
-@article{jeon2024quantifying,
-  title={Quantifying Signal-to-Noise Ratio in Neural Latent Trajectories via Fisher Information},
-  author={Jeon, Hyungju and Park, Il Memming},
-  journal={arXiv preprint arXiv:2408.08752},
-  year={2024}
+@InProceedings{Jeon2024b,
+  author    = {Hyungju Jeon and Il Memming Park},
+  booktitle = {European Signal Processing Conference},
+  title     = {Quantifying signal-to-noise ratio in neural latent trajectories via {F}isher information},
+  month     =  aug,
+  year      = {2024},
+  archivePrefix = "arXiv",
+  primaryClass  = "q-bio.NC",
+  eprint        = "2408.08752"
 }
 ```
