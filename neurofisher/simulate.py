@@ -1,6 +1,5 @@
 # %%
 import numpy as np
-import warnings
 from scipy.linalg import lstsq
 
 
@@ -300,14 +299,12 @@ def proj_simplex(v, s=1):
 
     References
     ----------
-    [1] Efficient Projections onto the .1-Ball for Learning in High Dimensions
-        John Duchi, Shai Shalev-Shwartz, Yoram Singer, and Tushar Chandra.
-        International Conference on Machine Learning (ICML 2008)
-        https://stanford.edu/~jduchi/projects/DuchiShSiCh08.pdf
+    [1] Duchi, John, et al. "Efficient projections onto the L1-ball for learning in high dimensions."
+        Proceedings of the 25th international conference on Machine learning. 2008.
     """
     assert s > 0, "Radius s must be strictly positive (%d <= 0)" % s
     (n,) = v.shape
-    if v.sum() == s and np.alltrue(v >= 0):
+    if v.sum() == s and np.all(v >= 0):
         return v
     u = np.sort(v)[::-1]
     cssv = np.cumsum(u)
@@ -318,7 +315,7 @@ def proj_simplex(v, s=1):
 
 
 def gen_C(d_latent, d_neurons, p_coh, p_sparse=0, C=None):
-    """Generate loading matrix with controlled coherence and sparsity.
+    """Generate loading matrix with controllable coherence and sparsity.
 
     Parameters
     ----------
@@ -420,6 +417,7 @@ def gen_poisson(
     ), f"p_coh must be greater than sqrt((d_neurons - d_latent) / (d_latent * (d_neurons - 1))) = {np.sqrt((d_neurons - x.shape[1]) / (x.shape[1] * (d_neurons - 1))):.2f}"
     assert d_neurons > 0, "d_neurons must be positive"
     assert tgt_rate > 0, "tgt_rate must be positive"
+
     if not np.all(np.isclose(np.std(x, axis=0), 1)):
         print("WARNING: latent trajectory must have unit variance. Normalizing...")
         x = x / np.std(x, axis=0)
@@ -427,6 +425,13 @@ def gen_poisson(
     d_latent = x.shape[1]
     if C is None:
         C = gen_C(d_latent, d_neurons, p_coh, p_sparse)
+    else:
+        assert (
+            C.shape[0] == x.shape[1]
+        ), "Loading matrix must have same number of rows as latent trajectory dimensions"
+        assert (
+            C.shape[1] == d_neurons
+        ), "Loading matrix must have same number of columns as number of neurons"
 
     b = 1.0 * np.random.rand(1, d_neurons) - np.log(tgt_rate)
     C, b, snr = scale_C(x, C, b, tgt_rate, tgt_snr=tgt_snr, snr_fn=snr_fn)
