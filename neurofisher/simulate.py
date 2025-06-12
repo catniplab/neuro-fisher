@@ -303,7 +303,7 @@ def proj_simplex(v, s=1):
     [1] Efficient Projections onto the .1-Ball for Learning in High Dimensions
         John Duchi, Shai Shalev-Shwartz, Yoram Singer, and Tushar Chandra.
         International Conference on Machine Learning (ICML 2008)
-        http://www.cs.berkeley.edu/~jduchi/projects/DuchiSiShCh08.pdf
+        https://stanford.edu/~jduchi/projects/DuchiShSiCh08.pdf
     """
     assert s > 0, "Radius s must be strictly positive (%d <= 0)" % s
     (n,) = v.shape
