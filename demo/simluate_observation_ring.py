@@ -1,10 +1,9 @@
 # %%
 # Generating log-linear Poisson observations from 2D Ring latent trajectory given Fisher Information SNR bound
-
-from neurofisher.visualize import *
-from neurofisher.simulate import *
-
 import numpy as np
+from neurofisher.latent_dynamics import generate_ring_trajectory
+from neurofisher.observation import gen_poisson_observations
+from neurofisher.vis_utils import *
 
 
 # Default parameters
@@ -14,10 +13,11 @@ time_range = np.linspace(0, time_duration, num_steps)
 dt = time_range[1] - time_range[0]
 
 # Generating Ring latent trajectory
-latent_trajectory = np.vstack(
-    [np.sin(2 * np.pi * time_range), np.cos(2 * np.pi * time_range)]
-).T
-latent_trajectory = latent_trajectory / np.std(latent_trajectory, axis=0)
+latent_trajectory = generate_ring_trajectory(
+    time_range=time_range,
+    w=1.0,
+    radius=1.0,
+)
 
 # Generate observations
 p_sparse = 0.1
@@ -26,7 +26,7 @@ target_rate = 20.0 * dt
 target_snr = 5.0  # dB
 num_neurons = 10
 
-observations, loading_matrix, bias, firing_rate_per_bin, snr = gen_poisson(
+observations, loading_matrix, bias, firing_rate_per_bin, snr = gen_poisson_observations(
     x=latent_trajectory,
     C=None,
     d_neurons=num_neurons,
@@ -34,7 +34,7 @@ observations, loading_matrix, bias, firing_rate_per_bin, snr = gen_poisson(
     p_coh=p_coherence,
     p_sparse=p_sparse,
     tgt_snr=target_snr,
-    snr_fn=comp_instantaneous_snr,
+    snr_fn=compute_instantaneous_snr,
 )
 
 # Plotting observations with latent trajectory

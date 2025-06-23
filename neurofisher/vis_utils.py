@@ -1,3 +1,5 @@
+"""Visualization utilities"""
+
 # Auxiliary functions for visualizing the data
 
 import matplotlib.pyplot as plt
