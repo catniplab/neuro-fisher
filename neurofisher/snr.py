@@ -7,7 +7,7 @@ import numpy as np
 from neurofisher.utils import compute_firing_rate, update_bias
 
 
-def compute_instantaneous_snr(x, C, b, tgt_rate):
+def compute_instantaneous_snr(x, C, b, tgt_rate_per_bin):
     """Compute SNR from instantaneous fisher information.
 
     Parameters
@@ -18,34 +18,24 @@ def compute_instantaneous_snr(x, C, b, tgt_rate):
         Loading matrix
     b : ndarray
         Bias vector
-    tgt_rate : float
-        Target firing rate
+    tgt_rate_per_bin : float
+        Target firing rate per bin
 
     Returns
     -------
-    tuple
-        (SNR in dB, updated bias)
+    float
+        SNR in dB
     """
-    rates = compute_firing_rate(x, C, b)
-    b = update_bias(np.mean(rates, axis=0), b, tgt_rate=tgt_rate)
-    rates = compute_firing_rate(x, C, b)
+    b, firing_rates = update_bias(x, C, b, tgt_rate=tgt_rate_per_bin)
+    firing_rates = compute_firing_rate(x, C, b)
 
-    snr = 0
-    reg = 1e-6  # Small regularization term to prevent singularity
-    for i, rate in enumerate(rates):
-        # Scale rates to prevent overflow
-        rate_scale = np.max(rate)
-        if rate_scale > 0:
-            rate = rate / rate_scale
-        # Add small regularization to diagonal to prevent singularity
-        F = C @ np.diag(rate) @ C.T
-        F = F + reg * np.eye(F.shape[0])
-        try:
-            snr += np.trace(np.linalg.inv(F)) / rate_scale if rate_scale > 0 else 0
-        except np.linalg.LinAlgError:
-            # If still singular, use pseudo-inverse
-            snr += np.trace(np.linalg.pinv(F)) / rate_scale if rate_scale > 0 else 0
-    snr = snr / rates.shape[0]
-    snr = 10 * np.log10(C.shape[0] / snr)
+    SNR = 0
+    for i, firing_rate in enumerate(firing_rates):
+        CC = C @ np.diag(firing_rate) @ C.T + np.eye(C.shape[0]) * 1e-6
+        invCC = np.linalg.inv(CC)
+        invCC[invCC > 1e6] = 0
+        SNR += np.trace(invCC)
+    SNR = SNR / firing_rates.shape[0]
+    SNR = 10 * np.log10(C.shape[0] / SNR)
 
-    return snr, b
+    return SNR, b

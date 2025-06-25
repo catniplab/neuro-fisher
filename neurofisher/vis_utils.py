@@ -48,7 +48,7 @@ def plot_spike_train(
 
     rate_ax.plot(time_range, firing_rates)
     rate_ax.set_xlabel("Time (s)")
-    rate_ax.set_ylabel("Firing Rate ")
+    rate_ax.set_ylabel("Firing Rate (Hz)")
     rate_ax.set_xlim(time_range[0], time_range[-1])
 
     plt.subplots_adjust(hspace=0.05)

@@ -20,40 +20,35 @@ def compute_firing_rate(x, C, b):
     ndarray
         Firing rates
     """
-    # Clip values to prevent overflow
-    log_rate = x @ C + b
-    log_rate = np.clip(log_rate, -700, 700)
-    return np.exp(log_rate)
+    return np.exp(x @ C + b)
 
 
-def update_bias(curr_rate, curr_b, tgt_rate=0.05):
+def update_bias(x, C, b, tgt_rate=0.05):
     """Update bias to match target firing rate.
 
     Parameters
     ----------
-    curr_rate : ndarray
-        Current firing rates
-    curr_b : ndarray
-        Current bias
+    rates : ndarray
+        Firing rates
+    b : ndarray
+        Bias vector
     tgt_rate : float, optional
         Target firing rate, by default 0.05
 
     Returns
     -------
     ndarray
-        Updated bias
+        Updated bias, updated firing rates
     """
-    assert curr_b.size == curr_rate.size
+    mean_rate = compute_firing_rate(x, C, b).mean(axis=0)
+    assert b.size == mean_rate.size
     # Handle zero rates
-    mask = curr_rate > 0
-    new_b = curr_b.copy()
-    # Ensure we're working with 1D arrays for indexing
-    new_b = new_b.ravel()
-    curr_b = curr_b.ravel()
-    curr_rate = curr_rate.ravel()
-    new_b[mask] = curr_b[mask] + np.log(tgt_rate / curr_rate[mask])
+    mask = mean_rate > 0
+    b[..., mask] = b[..., mask] + np.log(tgt_rate / mean_rate[mask])
+
     # Reshape back to original shape
-    return new_b.reshape(curr_b.shape)
+    new_rates = compute_firing_rate(x, C, b)
+    return b, new_rates
 
 
 def safe_normalize(C, axis=0):

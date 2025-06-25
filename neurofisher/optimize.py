@@ -5,7 +5,7 @@ including computing coherence, and scaling loading matrices to achieve target si
 """
 
 import numpy as np
-from neurofisher.utils import safe_normalize, compute_firing_rate
+from neurofisher.utils import safe_normalize, compute_firing_rate, update_bias
 from neurofisher.snr import compute_instantaneous_snr
 
 
@@ -88,13 +88,51 @@ def project_simplex(v, s=1):
     return w
 
 
+def adjust_gain(x, C, b, current_gain, tgt_rate_per_bin, max_rate_per_bin):
+    """Limit firing rate to max_rate_per_bin.
+
+    Parameters
+    ----------
+    x : ndarray
+        Latent trajectory
+    C : ndarray
+        Loading matrix
+    b : ndarray
+        Bias vector
+    tgt_rate_per_bin : float
+        Target firing rate per bin
+    max_rate_per_bin : float
+        Maximum firing rate per bin
+
+    Returns
+    -------
+    ndarray
+        Mask of neurons to limit
+    """
+    Cx = (x @ C).max(axis=0)
+    C = C * current_gain
+    b, firing_rates = update_bias(x, C, b, tgt_rate=tgt_rate_per_bin)
+
+    adjusted_idx = firing_rates.max(axis=0) > max_rate_per_bin
+    adjusted_gain = np.ones(C.shape[1]) * current_gain
+    adjusted_gain[adjusted_idx] = (
+        current_gain
+        + np.log(max_rate_per_bin / firing_rates.max(axis=0)[adjusted_idx])
+        / Cx[adjusted_idx]
+    )
+
+    return adjusted_gain, adjusted_idx
+
+
 def optimize_C(
     x,
     C,
     b,
-    tgt_rate,
+    tgt_rate_per_bin,
+    max_rate_per_bin,
     tgt_snr,
     snr_fn,
+    priority="max",
     max_iter=40,
     tol=0.1,
     min_gain=0.5,
@@ -110,6 +148,7 @@ def optimize_C(
         tgt_rate: Target firing rate per bin
         tgt_snr: Target signal-to-noise ratio in dB
         snr_fn: Function to compute SNR
+        max_rate: Maximum firing rate
         max_iter: Maximum number of bisection iterations
         tol: Relative tolerance for SNR matching (e.g., 0.1 means 10% tolerance)
         min_gain: Initial minimum gain for search
@@ -129,39 +168,58 @@ def optimize_C(
     curr_min_gain = min_gain
     curr_max_gain = max_gain
 
+    prev_snr = -float("inf")
     # Find initial bounds that contain the solution
     for _ in range(10):  # Limit initial search iterations
         try:
-            snr, _ = snr_fn(x, C * curr_max_gain, b, tgt_rate)
-            if snr > tgt_snr:
+            snr, _ = snr_fn(x, C * curr_max_gain, b, tgt_rate_per_bin)
+            if snr > tgt_snr or snr < prev_snr:
                 break
         except np.linalg.LinAlgError:
-            pass  # If singular, try larger gain
+            curr_max_gain *= 0.8
+            break
         curr_max_gain *= 2.0
+        prev_snr = snr
 
+    prev_snr = float("inf")
     for _ in range(10):  # Limit initial search iterations
         try:
-            snr, _ = snr_fn(x, C * curr_min_gain, b, tgt_rate)
-            if snr < tgt_snr:
+            snr, _ = snr_fn(x, C * curr_min_gain, b, tgt_rate_per_bin)
+            if snr < tgt_snr or snr > prev_snr:
                 break
         except np.linalg.LinAlgError:
             pass  # If singular, try smaller gain
         curr_min_gain *= 0.5
+        prev_snr = snr
 
     # Bisection search
     best_snr = float("inf")
     best_gain = None
     best_b = None
-
+    curr_b = b
     for i in range(max_iter):
-        curr_gain = (curr_min_gain + curr_max_gain) / 2
+        # curr_gain = (curr_min_gain + curr_max_gain) / 2
+        curr_gain = np.sqrt(curr_min_gain * curr_max_gain)
         try:
-            snr, curr_b = snr_fn(x, C * curr_gain, b, tgt_rate)
+            adjusted_gain, adjusted_idx = adjust_gain(
+                x, C, curr_b, curr_gain, tgt_rate_per_bin, max_rate_per_bin
+            )
+            curr_C = C * adjusted_gain
+            snr, curr_b = snr_fn(x, curr_C, curr_b, tgt_rate_per_bin)
+            if priority == "max":
+                recalibrated_gain, _ = adjust_gain(
+                    x, curr_C, curr_b, 1, tgt_rate_per_bin, max_rate_per_bin
+                )
+                adjusted_gain = adjusted_gain * recalibrated_gain
 
+            if verbose:
+                print(
+                    f"SNR: {snr:.2f} dB, Gain: {curr_gain:.2f}, Adjusted neurons: {adjusted_idx.sum()}"
+                )
             # Keep track of best solution
             if abs(snr - tgt_snr) < abs(best_snr - tgt_snr):
                 best_snr = snr
-                best_gain = curr_gain
+                best_gain = adjusted_gain
                 best_b = curr_b
 
             # Check for convergence
@@ -171,13 +229,10 @@ def optimize_C(
                     print(
                         f"Converged after {i + 1} iterations with relative error {rel_err:.2%}"
                     )
-                return C * curr_gain, curr_b, snr
+                return C * adjusted_gain, curr_b, snr
 
             # Update search bounds
-            if snr > tgt_snr:
-                curr_max_gain = curr_gain
-            else:
-                curr_min_gain = curr_gain
+            curr_min_gain = curr_gain
         except np.linalg.LinAlgError:
             # If singular, try smaller gain
             curr_max_gain = curr_gain
@@ -188,13 +243,17 @@ def optimize_C(
             if verbose:
                 print(f"Search bounds converged after {i + 1} iterations")
             break
+        if adjusted_gain.max() < curr_gain:
+            curr_max_gain = adjusted_gain.max()
 
     # If we didn't find a solution within tolerance, use the best one found
     if best_gain is not None:
-        if verbose:
-            print(
-                f"Using best solution found: SNR = {best_snr:.2f} dB (target: {tgt_snr:.2f} dB)"
-            )
+        print(
+            f"Could not find solution for target SNR {tgt_snr} dB, using best solution found: SNR = {best_snr:.2f} dB"
+        )
+        if priority == "mean":
+            best_b, _ = update_bias(x, C * best_gain, best_b, tgt_rate_per_bin)
+
         return C * best_gain, best_b, best_snr
 
     raise ValueError(f"Failed to find solution for target SNR {tgt_snr} dB")
@@ -258,36 +317,6 @@ def initialize_C(d_latent, d_neurons, p_coh, p_sparse=0, C=None):
     C = safe_normalize(C)
     C[np.isnan(C)] = 0
     return C
-
-
-def update_bias(curr_rate, curr_b, tgt_rate=0.05):
-    """Update bias to match target firing rate.
-
-    Parameters
-    ----------
-    curr_rate : ndarray
-        Current firing rates
-    curr_b : ndarray
-        Current bias
-    tgt_rate : float, optional
-        Target firing rate, by default 0.05
-
-    Returns
-    -------
-    ndarray
-        Updated bias
-    """
-    assert curr_b.size == curr_rate.size
-    # Handle zero rates
-    mask = curr_rate > 0
-    new_b = curr_b.copy()
-    # Ensure we're working with 1D arrays for indexing
-    new_b = new_b.ravel()
-    curr_b = curr_b.ravel()
-    curr_rate = curr_rate.ravel()
-    new_b[mask] = curr_b[mask] + np.log(tgt_rate / curr_rate[mask])
-    # Reshape back to original shape
-    return new_b.reshape(curr_b.shape)
 
 
 def scale_C(
@@ -441,7 +470,6 @@ def gen_C(d_latent, d_neurons, p_coh, p_sparse=0, C=None):
             coh = compute_coherence(C)
             if coh < p_coh:
                 C = safe_normalize(C)
-                C[np.isnan(C)] = 0
                 return C
 
             vv = (C.T @ C - np.eye(d_neurons)) / rho
@@ -450,7 +478,6 @@ def gen_C(d_latent, d_neurons, p_coh, p_sparse=0, C=None):
 
             mm = C - alpha * C @ (v_mat + v_mat.T)
             C = safe_normalize(mm)
-            C[np.isnan(C)] = 0
         rho = rho / eta
         alpha = lbda * rho
 

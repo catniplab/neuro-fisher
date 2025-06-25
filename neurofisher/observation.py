@@ -7,18 +7,21 @@ from latent trajectories with target firing rates and signal-to-noise ratios (SN
 import numpy as np
 from neurofisher.optimize import initialize_C, optimize_C
 from neurofisher.snr import compute_instantaneous_snr
-from neurofisher.utils import compute_firing_rate
+from neurofisher.utils import compute_firing_rate, update_bias
 
 
 def gen_poisson_observations(
     x,
     C=None,
     d_neurons=100,
-    tgt_rate=0.01,
+    tgt_rate_per_bin=0.01,
+    max_rate_per_bin=1,
+    priority="mean",
     p_coh=0.5,
     p_sparse=0.1,
     tgt_snr=10.0,
     snr_fn=compute_instantaneous_snr,
+    verbose=False,
 ):
     """Generate Poisson observations with controlled SNR and firing rate.
 
@@ -30,8 +33,12 @@ def gen_poisson_observations(
         Loading matrix, by default None
     d_neurons : int, optional
         Number of neurons, by default 100
-    tgt_rate : float, optional
-        Target firing rate, by default 0.01
+    tgt_rate_per_bin : float, optional
+        Target mean firing rate per bin, by default 0.01
+    max_rate_per_bin : float, optional
+        Maximum firing rate per bin, by default 1
+    priority : str, optional
+        Priority for the optimization: "mean" or "max", by default "mean"
     p_coh : float, optional
         Coherence, by default 0.5
     p_sparse : float, optional
@@ -39,8 +46,9 @@ def gen_poisson_observations(
     tgt_snr : float, optional
         Target SNR, by default 10.0
     snr_fn : callable, optional
-        SNR function, by default comp_snr
-
+        SNR function, by default compute_instantaneous_snr
+    verbose : bool, optional
+        Whether to print debug information, by default False
     Returns
     -------
     tuple
@@ -52,7 +60,8 @@ def gen_poisson_observations(
         (d_neurons - x.shape[1]) / (x.shape[1] * (d_neurons - 1))
     ), f"p_coh must be greater than sqrt((d_neurons - d_latent) / (d_latent * (d_neurons - 1))) = {np.sqrt((d_neurons - x.shape[1]) / (x.shape[1] * (d_neurons - 1))):.2f}"
     assert d_neurons > 0, "d_neurons must be positive"
-    assert tgt_rate > 0, "tgt_rate must be positive"
+    assert tgt_rate_per_bin > 0, "tgt_rate_per_bin must be positive"
+    assert max_rate_per_bin > 0, "max_rate_per_bin must be positive"
 
     if not np.all(np.isclose(np.std(x, axis=0), 1)):
         print("WARNING: latent trajectory must have unit variance. Normalizing...")
@@ -69,14 +78,23 @@ def gen_poisson_observations(
             C.shape[1] == d_neurons
         ), "Loading matrix must have same number of columns as number of neurons"
 
-    b = 1.0 * np.random.rand(1, d_neurons) - np.log(tgt_rate)
-    C, b, snr = optimize_C(x, C, b, tgt_rate, tgt_snr=tgt_snr, snr_fn=snr_fn)
+    # b = 1.0 * np.random.rand(1, d_neurons) - np.log(tgt_rate_per_bin)
+    b = np.zeros((1, d_neurons))
     rates = compute_firing_rate(x, C, b)
+    b, rates = update_bias(x, C, b, tgt_rate=tgt_rate_per_bin)
 
-    # Clip rates to prevent overflow in Poisson sampling
-    max_rate = 1e9  # Maximum rate that NumPy's Poisson can handle
-    rates = np.clip(rates, 0, max_rate)
-
+    C, b, snr = optimize_C(
+        x=x,
+        C=C,
+        b=b,
+        tgt_rate_per_bin=tgt_rate_per_bin,
+        max_rate_per_bin=max_rate_per_bin,
+        tgt_snr=tgt_snr,
+        snr_fn=snr_fn,
+        priority=priority,
+        verbose=verbose,
+    )
+    rates = compute_firing_rate(x, C, b)
     obs = np.random.poisson(rates)
 
     return obs, C, b, rates, snr
