@@ -6,19 +6,24 @@ This repository contains the implementation for the paper:
 *Hyungju Jeon, Il Memming Park*
 [arXiv:2408.08752](https://arxiv.org/abs/2408.08752)
 
-## Abstract
+---
 
-Spike train signals recorded from a large population of neurons often exhibit low-dimensional spatio-temporal structure and modeled as conditional Poisson observations. The low-dimensional signals that capture internal brain states are useful for building brain machine interfaces and understanding the neural computation underlying meaningful behavior. We derive a practical upper bound to the signal-to-noise ratio (SNR) of inferred neural latent trajectories using Fisher information. We show that the SNR bound is proportional to the overdispersion factor and the Fisher information per neuron. Further numerical experiments show that inference methods that exploit the temporal regularities can achieve higher SNRs that are proportional to the bound. Our results provide insights for fitting models to data, simulating neural responses, and design of experiments.
+## Overview
+Neural spiking activity is inherently stochastic, with significant variability across different trials and neurons. Yet, buried in this noise is critical information about the population-wide latent states, the hidden neural dynamics that drive and is driven by behavior and perception. To assess the feasibility of accurately extracting these latent states from a given dataset, we need statistical tools that help us understand how much information neural spikes carry.
+
+Given neural spiking recordings, how much do the neurons inform us about the latent neural states?  To answer this question, we use the Fisher Information to derive an upper bound for the Signal-to-Noise Ratio (SNR) of the latent trajectories observed from spikes.
+
+Our model uses the log-linear Poisson state space model $y_i(t) ~ Poisson(\lambda_i(t))$, where $\lambda_i(t) = \exp(C_i x(t) + b_i)$ to model the neural spiking activity. Then the Fisher Information of the latent trajectory is given by:
+
+![Fisher SNR](figs/snr_eq.png)
 
 ---
 
-## Overview and Core Features
-![Overview](figs/numerical_analysis.png)
+## Core Features
 - Generate Poisson spike train observations and log-linear observation model parameters with controllable signal-to-noise ratio (SNR)
 - Compute Instantaneous Observed Fisher Information 
 - (To be implemented) Estimate Cramér-Rao lower bounds on estimation accuracy for the latent trajectory
 - (To be implemented) Evaluate and compare inference results with theoretical uncertainty
-
 ---
 
 ## Installation
@@ -49,15 +54,22 @@ observations, loading_matrix, bias, firing_rate_per_bin, snr = gen_poisson(
     x=latent_trajectory,
     C=None,
     d_neurons=num_neurons,
-    tgt_rate=target_rate,
+    tgt_rate_per_bin=target_rate_per_bin,
+    max_rate_per_bin=max_rate_per_bin,
+    priority="max",
     p_coh=p_coherence,
     p_sparse=p_sparse,
     tgt_snr=target_snr,
 )
 ```
-- If `C` is not provided, it will be generated with target coherence and sparsity.
-- If `C` is provided, it will be used as the loading matrix but scaled to match the target signal-to-noise ratio (SNR).
-
+- `x` if the latent trajectory of interest. It should be normalized to have unit variance and zero mean. 
+- `C` is the loading matrix. If `C` is provided, it will be used as the loading matrix but scaled to match the target signal-to-noise ratio (SNR) per bin. If `C` is not provided, it will be generated with target coherence and sparsity. 
+- `d_neurons` is the number of neurons.
+- `tgt_rate_per_bin` is the target mean firing rate per bin.
+- `max_rate_per_bin` is the maximum firing rate per bin.
+- `priority` can be "mean" or "max". "mean" prioritizes optimizing the mean firing rate per bin while "max" prioritizes the maximum firing rate per bin.
+- `p_coh` and `p_sparse` are the target coherence and sparsity of the loading matrix.
+- `tgt_snr` is the target signal-to-noise ratio (SNR) per bin. Suggested value of SNR bound is around `10 * log10(tgt_rate_per_bin * d_neurons / d_latent * 2 * log(max_rate_per_bin / tgt_rate_per_bin))`
 
 Check out the demo folder for complete examples.
 
