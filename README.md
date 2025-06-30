@@ -15,12 +15,12 @@ Neural spiking activity is inherently stochastic, with significant variability a
 
 To answer this question, we use the Fisher Information to derive an upper bound for the Signal-to-Noise Ratio (SNR) of the latent trajectories observed from spikes.
 
-We model neural spiking activity of neuron $i$ at time $t$, $y_i(t) \in \mathbb{N}_0$, with a log-linear Poisson state space model 
+We model neural spiking activity of neuron $i$ at time $t$, $y_i(t) \in \mathbb{N}_0$, with a log-linear Poisson state space model\
 $$y_i(t) \sim Poisson(\lambda_i(t))$$ 
-where the firing rate $\lambda_i(t) \in \mathbb{R}^+$ is defined as exponential of a linear function of the latent trajectory $\mathbf{x}(t) \in \mathbb{R}^d$ and the observation model parameters (loading vector $C_i \in \mathbb{R}^{1 \times d}$ and bias $b_i \in \mathbb{R}$).
+where the firing rate $\lambda_i(t) \in \mathbb{R}^+$ is defined as exponential of a linear function of the latent trajectory $\mathbf{x}(t) \in \mathbb{R}^d$ and the observation model parameters (loading vector $C_i \in \mathbb{R}^{1 \times d}$ and bias $b_i \in \mathbb{R}$).\
 $$ \lambda_i(t) = \exp(C_i \mathbf{x}(t) + b_i)$$
 
-Then the Fisher Information of the latent trajectory given population of $n$ neurons is given by:
+Then the Fisher Information of the latent trajectory given population of $n$ neurons is given by:\
 $$ \boldsymbol{I}^{{\mathrm{pop}}}(\mathbf{x})=\mathbf{C}^{\top}\operatorname{diag}(\boldsymbol{\lambda}(\mathbf{x}))\mathbf{C} $$
 
 where $\boldsymbol{\lambda}(\mathbf{x}) = (\lambda_1(\mathbf{x}), \lambda_2(\mathbf{x}), \ldots, \lambda_n(\mathbf{x}))^{\top}$ is the vector of firing rates for all neurons, and $\mathbf{C} = [C_1, C_2, \ldots, C_n]^{\top} \in \mathbb{R}^{n \times d}$ is the loading matrix.
