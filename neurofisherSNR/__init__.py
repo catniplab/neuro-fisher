@@ -2,13 +2,16 @@
 
 # SNR computation
 # Latent dynamics generation
-from .latent_dynamics import (generate_gp_trajectory,
-                              generate_oscillation_trajectory)
+from .latent_dynamics import generate_gp_trajectory, generate_oscillation_trajectory
+
 # Poisson observations generation
 from .observation import gen_poisson_observations
+
 # Optimization
 from .optimize import optimize_C
 from .snr import SNR_bound_instantaneous
+
+__version__ = "0.2"
 
 __all__ = [
     "SNR_bound_instantaneous",

@@ -31,7 +31,7 @@ def compute_firing_rate(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> np.ndar
         b = b.reshape(1, -1)
     assert (
         isinstance(b, np.ndarray) and b.ndim == 2 and b.shape[0] == 1
-    ), "b must be 2D ndarray (1, d_neurons)"
+    ), f"b must be 2D ndarray (1, d_neurons), got {b.shape}"
     return np.exp(x @ CT + b)
 
 

@@ -1,4 +1,4 @@
-# Neuro-Fisher
+# NeuroFisherSNR
 
 This repository contains the implementation for the paper:
 
@@ -81,8 +81,8 @@ observations, C, bias, firing_rate_per_bin, snr = gen_poisson_observations(
     tgt_snr=target_snr,
 )
 ```
-- `x` if the latent trajectory of interest. It should be normalized to have unit variance and zero mean.
-- `C` is the loading matrix. If `C` is provided, it will be used as the loading matrix but scaled to match the target signal-to-noise ratio (SNR) per bin. If `C` is not provided, it will be generated with target coherence and sparsity.
+- `x` if the latent trajectory of interest in shape `(n_timepoints, d_latent)`. It should be normalized to have unit variance and zero mean. If not, it will be normalized to have unit variance and zero mean.
+- `C` is the loading matrix in shape `(d_neurons, d_latent)`. If `C` is provided, it will be used as the loading matrix but scaled to match the target signal-to-noise ratio (SNR) per bin. If `C` is not provided, it will be generated with target coherence and sparsity.
 - `d_neurons` is the number of neurons.
 - `tgt_rate_per_bin` is the target mean firing rate per bin.
 - `max_rate_per_bin` is the maximum firing rate per bin.

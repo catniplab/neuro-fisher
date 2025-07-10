@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "neurofisherSNR"
 version = "0.2"
-description = "A package for generating log-linear Poisson neural observations."
+description = "A package for generating log-linear Poisson neural observations with Fisher Information SNR bound."
 authors = [
     { name = "Hyungju Jeon", email = "hyungju.jeon@research.fchampalimaud.org" },
     { name = "Il Memming Park", email = "memming.park@research.fchampalimaud.org" }
