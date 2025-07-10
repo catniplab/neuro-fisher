@@ -6,7 +6,7 @@ including computing coherence, and scaling loading matrices to achieve target si
 
 import numpy as np
 
-from neurofisher.utils import safe_normalize, update_bias
+from neurofisher.utils import bias_matching_firing_rate, safe_normalize
 
 
 def compute_coherence(C):
@@ -117,7 +117,8 @@ def adjust_gain(x, C, b, current_gain, tgt_rate_per_bin, max_rate_per_bin):
     """
     Cx = (x @ C).max(axis=0)
     C = C * current_gain
-    b, firing_rates = update_bias(x, C, b, tgt_rate=tgt_rate_per_bin)
+    b, firing_rates = bias_matching_firing_rate(
+        x, C, b, tgt_rate=tgt_rate_per_bin)
 
     adjusted_idx = firing_rates.max(axis=0) > max_rate_per_bin
     adjusted_gain = np.ones(C.shape[1]) * current_gain
@@ -178,8 +179,8 @@ def optimize_C(
     # Find initial bounds that contain the solution
     for _ in range(10):  # Limit initial search iterations
         try:
-            b_tmp, _ = update_bias(x, C * curr_max_gain,
-                                   b, tgt_rate=tgt_rate_per_bin)
+            b_tmp, _ = bias_matching_firing_rate(x, C * curr_max_gain,
+                                                 b, tgt_rate=tgt_rate_per_bin)
             snr = snr_fn(x, C * curr_max_gain, b_tmp)
             if snr > tgt_snr or snr < prev_snr:
                 break
@@ -192,8 +193,8 @@ def optimize_C(
     prev_snr = float("inf")
     for _ in range(10):  # Limit initial search iterations
         try:
-            b_tmp, _ = update_bias(x, C * curr_max_gain,
-                                   b, tgt_rate=tgt_rate_per_bin)
+            b_tmp, _ = bias_matching_firing_rate(x, C * curr_max_gain,
+                                                 b, tgt_rate=tgt_rate_per_bin)
             snr = snr_fn(x, C * curr_min_gain, b_tmp)
             if snr < tgt_snr or snr > prev_snr:
                 break
@@ -215,7 +216,7 @@ def optimize_C(
                 x, C, curr_b, curr_gain, tgt_rate_per_bin, max_rate_per_bin
             )
             curr_C = C * adjusted_gain
-            curr_b, _ = update_bias(
+            curr_b, _ = bias_matching_firing_rate(
                 x, curr_C, b, tgt_rate=tgt_rate_per_bin)
             snr = snr_fn(x, curr_C, curr_b)
             if priority == "max":
@@ -264,7 +265,8 @@ def optimize_C(
             f"Could not find solution for target SNR {tgt_snr} dB, using best solution found: SNR = {best_snr:.2f} dB"
         )
         if priority == "mean":
-            best_b, _ = update_bias(x, C * best_gain, best_b, tgt_rate_per_bin)
+            best_b, _ = bias_matching_firing_rate(
+                x, C * best_gain, best_b, tgt_rate_per_bin)
 
         return C * best_gain, best_b, best_snr
 

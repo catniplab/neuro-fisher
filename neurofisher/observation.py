@@ -10,7 +10,7 @@ import numpy as np
 
 from neurofisher.optimize import initialize_C, optimize_C
 from neurofisher.snr import SNR_bound_instantaneous
-from neurofisher.utils import compute_firing_rate, update_bias
+from neurofisher.utils import bias_matching_firing_rate, compute_firing_rate
 
 
 def gen_poisson_observations(
@@ -88,7 +88,7 @@ def gen_poisson_observations(
     # b = 1.0 * np.random.rand(1, d_neurons) - np.log(tgt_rate_per_bin)
     b = np.zeros((1, d_neurons))
     rates = compute_firing_rate(x, C, b)
-    b, rates = update_bias(x, C, b, tgt_rate=tgt_rate_per_bin)
+    b, rates = bias_matching_firing_rate(x, C, b, tgt_rate=tgt_rate_per_bin)
 
     C, b, snr = optimize_C(
         x=x,

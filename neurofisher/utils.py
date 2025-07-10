@@ -23,7 +23,7 @@ def compute_firing_rate(x, C, b):
     return np.exp(x @ C + b)
 
 
-def update_bias(x, C, b, tgt_rate=0.05):
+def bias_matching_firing_rate(x, C, b, tgt_rate=0.05):
     """Update bias to match target firing rate.
 
     Parameters
