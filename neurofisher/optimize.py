@@ -9,7 +9,7 @@ import numpy as np
 from neurofisher.utils import bias_matching_firing_rate, safe_normalize
 
 
-def compute_coherence(C):
+def compute_coherence(CT):
     """Compute coherence of loading matrix.
 
     Coherence is defined as the maximum absolute value of the off-diagonal entries of the normalized correlation matrix
@@ -20,7 +20,7 @@ def compute_coherence(C):
 
     Parameters
     ----------
-    C : ndarray
+    CT : ndarray
         Loading matrix
 
     Returns
@@ -28,8 +28,8 @@ def compute_coherence(C):
     float
         Maximum off-diagonal correlation
     """
-    C_norm = safe_normalize(C)
-    CC = C_norm.T @ C_norm
+    CT_norm = safe_normalize(CT)
+    CC = CT_norm.T @ CT_norm
     return np.max(np.abs(CC - np.diag(np.diag(CC))))
 
 
@@ -117,8 +117,7 @@ def adjust_gain(x, C, b, current_gain, tgt_rate_per_bin, max_rate_per_bin):
     """
     Cx = (x @ C).max(axis=0)
     C = C * current_gain
-    b, firing_rates = bias_matching_firing_rate(
-        x, C, b, tgt_rate=tgt_rate_per_bin)
+    b, firing_rates = bias_matching_firing_rate(x, C, b, tgt_rate=tgt_rate_per_bin)
 
     adjusted_idx = firing_rates.max(axis=0) > max_rate_per_bin
     adjusted_gain = np.ones(C.shape[1]) * current_gain
@@ -133,7 +132,7 @@ def adjust_gain(x, C, b, current_gain, tgt_rate_per_bin, max_rate_per_bin):
 
 def optimize_C(
     x,
-    C,
+    CT,
     b,
     tgt_rate_per_bin,
     max_rate_per_bin,
@@ -150,7 +149,7 @@ def optimize_C(
 
     Args:
         x: The latent trajectory matrix
-        C: The loading matrix to scale
+        CT: The loading matrix to scale
         b: The bias vector
         tgt_rate: Target firing rate per bin
         tgt_snr: Target signal-to-noise ratio in dB
@@ -179,9 +178,10 @@ def optimize_C(
     # Find initial bounds that contain the solution
     for _ in range(10):  # Limit initial search iterations
         try:
-            b_tmp, _ = bias_matching_firing_rate(x, C * curr_max_gain,
-                                                 b, tgt_rate=tgt_rate_per_bin)
-            snr = snr_fn(x, C * curr_max_gain, b_tmp)
+            b_tmp, _ = bias_matching_firing_rate(
+                x, CT * curr_max_gain, b, tgt_rate=tgt_rate_per_bin
+            )
+            snr = snr_fn(x, CT * curr_max_gain, b_tmp)
             if snr > tgt_snr or snr < prev_snr:
                 break
         except np.linalg.LinAlgError:
@@ -193,9 +193,10 @@ def optimize_C(
     prev_snr = float("inf")
     for _ in range(10):  # Limit initial search iterations
         try:
-            b_tmp, _ = bias_matching_firing_rate(x, C * curr_max_gain,
-                                                 b, tgt_rate=tgt_rate_per_bin)
-            snr = snr_fn(x, C * curr_min_gain, b_tmp)
+            b_tmp, _ = bias_matching_firing_rate(
+                x, CT * curr_max_gain, b, tgt_rate=tgt_rate_per_bin
+            )
+            snr = snr_fn(x, CT * curr_min_gain, b_tmp)
             if snr < tgt_snr or snr > prev_snr:
                 break
         except np.linalg.LinAlgError:
@@ -213,15 +214,16 @@ def optimize_C(
         curr_gain = np.sqrt(curr_min_gain * curr_max_gain)
         try:
             adjusted_gain, adjusted_idx = adjust_gain(
-                x, C, curr_b, curr_gain, tgt_rate_per_bin, max_rate_per_bin
+                x, CT, curr_b, curr_gain, tgt_rate_per_bin, max_rate_per_bin
             )
-            curr_C = C * adjusted_gain
+            curr_CT = CT * adjusted_gain
             curr_b, _ = bias_matching_firing_rate(
-                x, curr_C, b, tgt_rate=tgt_rate_per_bin)
-            snr = snr_fn(x, curr_C, curr_b)
+                x, curr_CT, b, tgt_rate=tgt_rate_per_bin
+            )
+            snr = snr_fn(x, curr_CT, curr_b)
             if priority == "max":
                 recalibrated_gain, _ = adjust_gain(
-                    x, curr_C, curr_b, 1, tgt_rate_per_bin, max_rate_per_bin
+                    x, curr_CT, curr_b, 1, tgt_rate_per_bin, max_rate_per_bin
                 )
                 adjusted_gain = adjusted_gain * recalibrated_gain
 
@@ -242,7 +244,7 @@ def optimize_C(
                     print(
                         f"Converged after {i + 1} iterations with relative error {rel_err:.2%}"
                     )
-                return C * adjusted_gain, curr_b, snr
+                return CT * adjusted_gain, curr_b, snr
 
             # Update search bounds
             curr_min_gain = curr_gain
@@ -266,9 +268,10 @@ def optimize_C(
         )
         if priority == "mean":
             best_b, _ = bias_matching_firing_rate(
-                x, C * best_gain, best_b, tgt_rate_per_bin)
+                x, CT * best_gain, best_b, tgt_rate_per_bin
+            )
 
-        return C * best_gain, best_b, best_snr
+        return CT * best_gain, best_b, best_snr
 
     raise ValueError(f"Failed to find solution for target SNR {tgt_snr} dB")
 
@@ -295,10 +298,12 @@ def initialize_C(d_latent, d_neurons, p_coh, p_sparse=0.0, C=None):
         Generated loading matrix
     """
     if C is None:
-        C = np.random.randn(d_latent, d_neurons)
-        C = C * (np.random.rand(d_latent, d_neurons) > p_sparse)
-        C = safe_normalize(C)
-        C[np.isnan(C)] = 0
+        CT = np.random.randn(d_latent, d_neurons)
+        CT = CT * (np.random.rand(d_latent, d_neurons) > p_sparse)
+        CT = safe_normalize(CT)
+        CT[np.isnan(CT)] = 0
+    else:
+        CT = C.T
 
     n_iter = 15
     n_inner = 1000
@@ -309,26 +314,25 @@ def initialize_C(d_latent, d_neurons, p_coh, p_sparse=0.0, C=None):
 
     for _ in range(n_iter):
         for _ in range(n_inner):
-            coh = compute_coherence(C)
+            coh = compute_coherence(CT)
             if coh < p_coh:
-                C = safe_normalize(C)
-                C[np.isnan(C)] = 0
-                return C
+                CT = safe_normalize(CT)
+                CT[np.isnan(CT)] = 0
+                return CT
 
-            vv = (C.T @ C - np.eye(d_neurons)) / rho
+            vv = (CT.T @ CT - np.eye(d_neurons)) / rho
             v = project_l1ball(vv.flatten(), s=1)
             v_mat = np.reshape(v, (d_neurons, d_neurons))
 
-            mm = C - alpha * C @ (v_mat + v_mat.T)
-            C = safe_normalize(mm)
-            C[np.isnan(C)] = 0
+            mm = CT - alpha * CT @ (v_mat + v_mat.T)
+            CT = safe_normalize(mm)
+            CT[np.isnan(CT)] = 0
         rho = rho / eta
         alpha = lbda * rho
 
     if coh >= p_coh:
-        print(
-            f"WARNING: target Coherence {p_coh} not reached, Current Coherence {coh}")
+        print(f"WARNING: target Coherence {p_coh} not reached, Current Coherence {coh}")
 
-    C = safe_normalize(C)
-    C[np.isnan(C)] = 0
-    return C
+    CT = safe_normalize(CT)
+    CT[np.isnan(CT)] = 0
+    return CT

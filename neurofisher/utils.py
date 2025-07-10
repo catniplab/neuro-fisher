@@ -3,14 +3,14 @@
 import numpy as np
 
 
-def compute_firing_rate(x, C, b):
+def compute_firing_rate(x, CT, b):
     """Compute firing rate of a log-linear Poisson neuron model.
 
     Parameters
     ----------
     x : ndarray
         Input matrix
-    C : ndarray
+    CT : ndarray
         Loading matrix
     b : ndarray
         Bias vector
@@ -20,10 +20,10 @@ def compute_firing_rate(x, C, b):
     ndarray
         Firing rates
     """
-    return np.exp(x @ C + b)
+    return np.exp(x @ CT + b)
 
 
-def bias_matching_firing_rate(x, C, b, tgt_rate=0.05):
+def bias_matching_firing_rate(x, CT, b, tgt_rate=0.05):
     """Update bias to match target firing rate.
 
     Parameters
@@ -40,14 +40,14 @@ def bias_matching_firing_rate(x, C, b, tgt_rate=0.05):
     ndarray
         Updated bias, updated firing rates
     """
-    mean_rate = compute_firing_rate(x, C, b).mean(axis=0)
+    mean_rate = compute_firing_rate(x, CT, b).mean(axis=0)
     assert b.size == mean_rate.size
     # Handle zero rates
     mask = mean_rate > 0
     b[..., mask] = b[..., mask] + np.log(tgt_rate / mean_rate[mask])
 
     # Reshape back to original shape
-    new_rates = compute_firing_rate(x, C, b)
+    new_rates = compute_firing_rate(x, CT, b)
     return b, new_rates
 
 
