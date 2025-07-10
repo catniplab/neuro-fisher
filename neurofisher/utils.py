@@ -1,57 +1,80 @@
 """Utility functions for neural data processing."""
 
 import numpy as np
+from typing import Tuple
 
 
-def compute_firing_rate(x, CT, b):
+def compute_firing_rate(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> np.ndarray:
     """Compute firing rate of a log-linear Poisson neuron model.
 
     Parameters
     ----------
     x : ndarray
-        Input matrix
+        Input matrix (n_timepoints, d_latent)
     CT : ndarray
-        Loading matrix
+        Loading matrix (d_latent, d_neurons)
     b : ndarray
-        Bias vector
+        Bias vector (1, d_neurons) or (n_timepoints, d_neurons)
 
     Returns
     -------
     ndarray
-        Firing rates
+        Firing rates (n_timepoints, d_neurons)
     """
+    assert (
+        isinstance(x, np.ndarray) and x.ndim == 2
+    ), "x must be 2D ndarray (n_timepoints, d_latent)"
+    assert (
+        isinstance(CT, np.ndarray) and CT.ndim == 2
+    ), "CT must be 2D ndarray (d_latent, d_neurons)"
+    assert (
+        isinstance(b, np.ndarray) and b.ndim == 2
+    ), "b must be 2D ndarray (1, d_neurons) or (n_timepoints, d_neurons)"
     return np.exp(x @ CT + b)
 
 
-def bias_matching_firing_rate(x, CT, b, tgt_rate=0.05):
+def bias_matching_firing_rate(
+    x: np.ndarray, CT: np.ndarray, b: np.ndarray, tgt_rate: float = 0.05
+) -> Tuple[np.ndarray, np.ndarray]:
     """Update bias to match target firing rate.
 
     Parameters
     ----------
-    rates : ndarray
-        Firing rates
+    x : ndarray
+        Input matrix (n_timepoints, d_latent)
+    CT : ndarray
+        Loading matrix (d_latent, d_neurons)
     b : ndarray
-        Bias vector
+        Bias vector (1, d_neurons) or (n_timepoints, d_neurons)
     tgt_rate : float, optional
         Target firing rate, by default 0.05
 
     Returns
     -------
-    ndarray
+    tuple
         Updated bias, updated firing rates
     """
+    assert (
+        isinstance(x, np.ndarray) and x.ndim == 2
+    ), "x must be 2D ndarray (n_timepoints, d_latent)"
+    assert (
+        isinstance(CT, np.ndarray) and CT.ndim == 2
+    ), "CT must be 2D ndarray (d_latent, d_neurons)"
+    assert (
+        isinstance(b, np.ndarray) and b.ndim == 1
+    ), "b must be 1D ndarray (d_neurons,)"
     mean_rate = compute_firing_rate(x, CT, b).mean(axis=0)
     assert b.size == mean_rate.size
     # Handle zero rates
     mask = mean_rate > 0
-    b[..., mask] = b[..., mask] + np.log(tgt_rate / mean_rate[mask])
+    b[mask] = b[mask] + np.log(tgt_rate / mean_rate[mask])
 
     # Reshape back to original shape
     new_rates = compute_firing_rate(x, CT, b)
     return b, new_rates
 
 
-def safe_normalize(C, axis=0):
+def safe_normalize(C: np.ndarray, axis: int = 0) -> np.ndarray:
     """Safely normalize matrix along specified axis.
 
     Parameters

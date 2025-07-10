@@ -16,13 +16,13 @@ plt.rcParams["pdf.fonttype"] = 42  # TrueType fonts
 
 
 def plot_spike_train(
-    x,
-    y,
-    num_neurons,
-    dt,
-    time_range,
-    firing_rates,
-    output_filename=None,
+    x: np.ndarray,
+    y: np.ndarray,
+    num_neurons: int,
+    dt: float,
+    time_range: np.ndarray,
+    firing_rates: np.ndarray,
+    output_filename: Optional[str] = None,
 ):
     spike_times = [
         np.where(y[:, neuron_idx] > 0)[0] * dt for neuron_idx in range(num_neurons)
@@ -56,7 +56,7 @@ def plot_spike_train(
     plt.subplots_adjust(hspace=0.05)
 
     if output_filename is not None:
-        plt.savefig(f"{output_filename}", dpi=300, bbox_inches='tight')
+        plt.savefig(f"{output_filename}", dpi=300, bbox_inches="tight")
         print(f"Plot saved to: {output_filename}")
 
     return fig

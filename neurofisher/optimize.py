@@ -5,11 +5,13 @@ including computing coherence, and scaling loading matrices to achieve target si
 """
 
 import numpy as np
+from typing import Optional, Callable, Tuple
 
 from neurofisher.utils import bias_matching_firing_rate, safe_normalize
+from neurofisher.snr import SNR_bound_instantaneous
 
 
-def compute_coherence(CT):
+def compute_coherence(CT: np.ndarray) -> float:
     """Compute coherence of loading matrix.
 
     Coherence is defined as the maximum absolute value of the off-diagonal entries of the normalized correlation matrix
@@ -28,12 +30,13 @@ def compute_coherence(CT):
     float
         Maximum off-diagonal correlation
     """
+    assert isinstance(CT, np.ndarray) and CT.ndim == 2, "CT must be 2D ndarray"
     CT_norm = safe_normalize(CT)
     CC = CT_norm.T @ CT_norm
     return np.max(np.abs(CC - np.diag(np.diag(CC))))
 
 
-def project_l1ball(v, s=1):
+def project_l1ball(v: np.ndarray, s: float = 1) -> np.ndarray:
     """Project vector onto L1-ball.
 
     Solves: min_w 0.5 * || w - v ||_2^2 , s.t. || w ||_1 <= s
@@ -50,6 +53,7 @@ def project_l1ball(v, s=1):
     ndarray
         Projected vector
     """
+    assert isinstance(v, np.ndarray) and v.ndim == 1, "v must be 1D ndarray"
     assert s > 0, "Radius s must be strictly positive (%d <= 0)" % s
     (n,) = v.shape
     u = np.abs(v)
@@ -60,7 +64,7 @@ def project_l1ball(v, s=1):
     return w
 
 
-def project_simplex(v, s=1):
+def project_simplex(v: np.ndarray, s: float = 1) -> np.ndarray:
     """Project vector onto positive simplex.
 
     Solves: min_w 0.5 * || w - v ||_2^2 , s.t. sum_i w_i = s, w_i >= 0
@@ -82,6 +86,7 @@ def project_simplex(v, s=1):
     [1] Duchi, John, et al. "Efficient projections onto the L1-ball for learning in high dimensions."
         Proceedings of the 25th international conference on Machine learning. 2008.
     """
+    assert isinstance(v, np.ndarray) and v.ndim == 1, "v must be 1D ndarray"
     assert s > 0, "Radius s must be strictly positive (%d <= 0)" % s
     (n,) = v.shape
     if v.sum() == s and np.all(v >= 0):
@@ -94,14 +99,21 @@ def project_simplex(v, s=1):
     return w
 
 
-def adjust_gain(x, C, b, current_gain, tgt_rate_per_bin, max_rate_per_bin):
+def adjust_gain(
+    x: np.ndarray,
+    CT: np.ndarray,
+    b: np.ndarray,
+    current_gain: float,
+    tgt_rate_per_bin: float,
+    max_rate_per_bin: float,
+) -> Tuple[np.ndarray, np.ndarray]:
     """Limit firing rate to max_rate_per_bin.
 
     Parameters
     ----------
     x : ndarray
         Latent trajectory
-    C : ndarray
+    CT : ndarray
         Loading matrix
     b : ndarray
         Bias vector
@@ -115,12 +127,20 @@ def adjust_gain(x, C, b, current_gain, tgt_rate_per_bin, max_rate_per_bin):
     ndarray
         Mask of neurons to limit
     """
-    Cx = (x @ C).max(axis=0)
-    C = C * current_gain
-    b, firing_rates = bias_matching_firing_rate(x, C, b, tgt_rate=tgt_rate_per_bin)
+    assert isinstance(x, np.ndarray) and x.ndim == 2, "x must be 2D ndarray"
+    assert isinstance(CT, np.ndarray) and CT.ndim == 2, "CT must be 2D ndarray"
+    assert isinstance(b, np.ndarray) and b.ndim == 2, "b must be 2D ndarray"
+    assert isinstance(current_gain, float) or isinstance(
+        current_gain, int
+    ), "current_gain must be float or int"
+    assert tgt_rate_per_bin > 0.0, "tgt_rate_per_bin must be positive"
+    assert max_rate_per_bin > 0.0, "max_rate_per_bin must be positive"
+    Cx = (x @ CT).max(axis=0)
+    CT = CT * current_gain
+    b, firing_rates = bias_matching_firing_rate(x, CT, b, tgt_rate=tgt_rate_per_bin)
 
     adjusted_idx = firing_rates.max(axis=0) > max_rate_per_bin
-    adjusted_gain = np.ones(C.shape[1]) * current_gain
+    adjusted_gain = np.ones(CT.shape[1]) * current_gain
     adjusted_gain[adjusted_idx] = (
         current_gain
         + np.log(max_rate_per_bin / firing_rates.max(axis=0)[adjusted_idx])
@@ -131,20 +151,20 @@ def adjust_gain(x, C, b, current_gain, tgt_rate_per_bin, max_rate_per_bin):
 
 
 def optimize_C(
-    x,
-    CT,
-    b,
-    tgt_rate_per_bin,
-    max_rate_per_bin,
-    tgt_snr,
-    snr_fn,
-    priority="max",
-    max_iter=40,
-    tol=0.1,
-    min_gain=0.5,
-    max_gain=1.0,
-    verbose=False,
-):
+    x: np.ndarray,
+    CT: np.ndarray,
+    b: np.ndarray,
+    tgt_rate_per_bin: float,
+    max_rate_per_bin: float,
+    tgt_snr: float,
+    snr_fn: Callable = SNR_bound_instantaneous,
+    priority: str = "max",
+    max_iter: int = 40,
+    tol: float = 0.1,
+    min_gain: float = 0.5,
+    max_gain: float = 1.0,
+    verbose: bool = False,
+) -> Tuple[np.ndarray, np.ndarray, float]:
     """Uniformly scale the loading matrix to match the target SNR using bisection search.
 
     Args:
@@ -167,6 +187,22 @@ def optimize_C(
     Raises:
         ValueError: If tgt_snr is invalid or if search fails to converge
     """
+    assert isinstance(x, np.ndarray) and x.ndim == 2, "x must be 2D ndarray"
+    assert isinstance(CT, np.ndarray) and CT.ndim == 2, "CT must be 2D ndarray"
+    assert isinstance(b, np.ndarray) and b.ndim == 2, "b must be 2D ndarray"
+    assert tgt_rate_per_bin > 0.0, "tgt_rate_per_bin must be positive"
+    assert max_rate_per_bin > 0.0, "max_rate_per_bin must be positive"
+    assert isinstance(tgt_snr, float) or isinstance(
+        tgt_snr, int
+    ), "tgt_snr must be float or int"
+    assert callable(snr_fn), "snr_fn must be callable"
+    assert isinstance(priority, str), "priority must be a string"
+    assert (
+        isinstance(max_iter, int) and max_iter > 0
+    ), "max_iter must be positive integer"
+    assert 0.0 < tol < 1.0, "tol must be between 0 and 1"
+    assert min_gain > 0.0 and max_gain > 0.0, "gains must be positive"
+
     if tol <= 0.0 or tol >= 1.0:
         raise ValueError("Tolerance must be between 0 and 1")
 
@@ -276,7 +312,13 @@ def optimize_C(
     raise ValueError(f"Failed to find solution for target SNR {tgt_snr} dB")
 
 
-def initialize_C(d_latent, d_neurons, p_coh, p_sparse=0.0, C=None):
+def initialize_C(
+    d_latent: int,
+    d_neurons: int,
+    p_coh: float,
+    p_sparse: float = 0.0,
+    C: Optional[np.ndarray] = None,
+) -> np.ndarray:
     """Generate loading matrix with controllable coherence and sparsity.
 
     Parameters
@@ -297,6 +339,20 @@ def initialize_C(d_latent, d_neurons, p_coh, p_sparse=0.0, C=None):
     ndarray
         Generated loading matrix
     """
+    assert (
+        isinstance(d_latent, int) and d_latent > 0
+    ), "d_latent must be positive integer"
+    assert (
+        isinstance(d_neurons, int) and d_neurons > 0
+    ), "d_neurons must be positive integer"
+    assert 0.0 <= p_sparse <= 1.0, "p_sparse must be between 0 and 1"
+    assert isinstance(p_coh, float) or isinstance(
+        p_coh, int
+    ), "p_coh must be float or int"
+    if C is not None:
+        assert (
+            isinstance(C, np.ndarray) and C.ndim == 2
+        ), "C must be 2D ndarray if provided"
     if C is None:
         CT = np.random.randn(d_latent, d_neurons)
         CT = CT * (np.random.rand(d_latent, d_neurons) > p_sparse)
