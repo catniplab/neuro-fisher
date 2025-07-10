@@ -17,8 +17,7 @@ dt = time_range[1] - time_range[0]
 # Generating Ring latent trajectory
 latent_trajectory = generate_oscillation_trajectory(
     time_range=time_range,
-    w=1.0,
-    radius=1.0,
+    w=1.0
 )
 
 # Generate observations

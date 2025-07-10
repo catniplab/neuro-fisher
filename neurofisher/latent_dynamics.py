@@ -44,7 +44,7 @@ def generate_gp_trajectory(time_range, d_latent, lengthscale=1.0):
     return latent_trajectory
 
 
-def generate_oscillation_trajectory(time_range, w=1.0, radius=1.0):
+def generate_oscillation_trajectory(time_range, w=1.0):
     """Generate latent trajectory from a perfect oscillation.
 
     Parameters
@@ -53,8 +53,6 @@ def generate_oscillation_trajectory(time_range, w=1.0, radius=1.0):
         Time range
     w : float, optional
         Angular frequency, by default 1.0
-    radius : float, optional
-        Radius of the oscillation, by default 1.0
 
     Returns
     -------
@@ -66,7 +64,7 @@ def generate_oscillation_trajectory(time_range, w=1.0, radius=1.0):
         [np.sin(2 * np.pi * w * time_range),
          np.cos(2 * np.pi * w * time_range)]
     ).T
-    latent_trajectory *= radius
+
     latent_trajectory = latent_trajectory / np.std(latent_trajectory, axis=0)
 
     return latent_trajectory
