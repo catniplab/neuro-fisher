@@ -4,24 +4,27 @@ This module provides functionality for generating Poisson-distributed neural obs
 from latent trajectories with target firing rates and signal-to-noise ratios (SNR).
 """
 
+from typing import Callable, Optional
+
 import numpy as np
+
 from neurofisher.optimize import initialize_C, optimize_C
 from neurofisher.snr import compute_instantaneous_snr
 from neurofisher.utils import compute_firing_rate, update_bias
 
 
 def gen_poisson_observations(
-    x,
-    C=None,
-    d_neurons=100,
-    tgt_rate_per_bin=0.01,
-    max_rate_per_bin=1,
-    priority="mean",
-    p_coh=0.5,
-    p_sparse=0.1,
-    tgt_snr=10.0,
-    snr_fn=compute_instantaneous_snr,
-    verbose=False,
+    x: np.ndarray,
+    C: Optional[np.ndarray] = None,
+    d_neurons: int = 100,
+    tgt_rate_per_bin: float = 0.01,
+    max_rate_per_bin: float = 1,
+    priority: str = "mean",
+    p_coh: float = 0.5,
+    p_sparse: float = 0.1,
+    tgt_snr: float = 10.0,
+    snr_fn: Callable = compute_instantaneous_snr,
+    verbose: bool = False,
 ):
     """Generate Poisson observations with controlled SNR and firing rate.
 
@@ -54,14 +57,18 @@ def gen_poisson_observations(
     tuple
         (observations, C, b, rates, snr)
     """
-    assert p_sparse >= 0, "p_sparse must be between 0 and 1"
-    assert p_sparse <= 1, "p_sparse must be between 0 and 1"
+    assert p_sparse >= 0.0, "p_sparse must be between 0 and 1"
+    assert p_sparse <= 1.0, "p_sparse must be between 0 and 1"
     assert p_coh >= np.sqrt(
         (d_neurons - x.shape[1]) / (x.shape[1] * (d_neurons - 1))
-    ), f"p_coh must be greater than sqrt((d_neurons - d_latent) / (d_latent * (d_neurons - 1))) = {np.sqrt((d_neurons - x.shape[1]) / (x.shape[1] * (d_neurons - 1))):.2f}"
+    ), (
+        f"p_coh must be greater than sqrt((d_neurons - d_latent) / "
+        f"(d_latent * (d_neurons - 1))) = "
+        f"{np.sqrt((d_neurons - x.shape[1]) / (x.shape[1] * (d_neurons - 1))):.2f}"
+    )
     assert d_neurons > 0, "d_neurons must be positive"
-    assert tgt_rate_per_bin > 0, "tgt_rate_per_bin must be positive"
-    assert max_rate_per_bin > 0, "max_rate_per_bin must be positive"
+    assert tgt_rate_per_bin > 0.0, "tgt_rate_per_bin must be positive"
+    assert max_rate_per_bin > 0.0, "max_rate_per_bin must be positive"
 
     if not np.all(np.isclose(np.std(x, axis=0), 1)):
         print("WARNING: latent trajectory must have unit variance. Normalizing...")
