@@ -86,15 +86,15 @@ def gen_poisson_observations(
         x = x / np.std(x, axis=0)
 
     if C is None:
-        CT = initialize_C(d_latent, d_neurons, p_coh, p_sparse)
+        C = initialize_C(d_latent, d_neurons, p_coh, p_sparse)
     else:
-        CT = C.T
         assert (
-            CT.shape[0] == x.shape[1]
+            C.shape[1] == x.shape[1]
         ), "Loading matrix must have same number of rows as latent trajectory dimensions"
         assert (
-            CT.shape[1] == d_neurons
+            C.shape[0] == d_neurons
         ), "Loading matrix must have same number of columns as number of neurons"
+    CT = C.T
 
     b = np.zeros((1, d_neurons))
     rates = compute_firing_rate(x, CT, b)
@@ -102,7 +102,7 @@ def gen_poisson_observations(
 
     C, b, snr = optimize_C(
         x=x,
-        C=CT.T,
+        C=C,
         b=b,
         tgt_rate_per_bin=tgt_rate_per_bin,
         max_rate_per_bin=max_rate_per_bin,

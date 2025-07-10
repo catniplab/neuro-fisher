@@ -325,7 +325,6 @@ def initialize_C(
     d_neurons: int,
     p_coh: float,
     p_sparse: float = 0.0,
-    C: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     """Generate loading matrix with controllable coherence and sparsity.
 
@@ -357,16 +356,11 @@ def initialize_C(
     assert isinstance(p_coh, float) or isinstance(
         p_coh, int
     ), "p_coh must be float or int"
-    if C is not None:
-        assert (
-            isinstance(C, np.ndarray) and C.ndim == 2
-        ), "C must be 2D ndarray if provided"
-        CT = C.T
-    else:
-        CT = np.random.randn(d_latent, d_neurons)
-        CT = CT * (np.random.rand(d_latent, d_neurons) > p_sparse)
-        CT = safe_normalize(CT)
-        CT[np.isnan(CT)] = 0
+
+    CT = np.random.randn(d_latent, d_neurons)
+    CT = CT * (np.random.rand(d_latent, d_neurons) > p_sparse)
+    CT = safe_normalize(CT)
+    CT[np.isnan(CT)] = 0
 
     n_iter = 15
     n_inner = 1000
@@ -381,7 +375,7 @@ def initialize_C(
             if coh < p_coh:
                 CT = safe_normalize(CT)
                 CT[np.isnan(CT)] = 0
-                return CT
+                return CT.T
 
             vv = (CT.T @ CT - np.eye(d_neurons)) / rho
             v = project_l1ball(vv.flatten(), s=1)
