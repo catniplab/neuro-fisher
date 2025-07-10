@@ -69,7 +69,7 @@ conda env create -f environment.yml
 Generate Poisson spike train observations and log-linear observation model parameters with a target signal-to-noise ratio (SNR) given a latent trajectory.
 
 ```python
-observations, loading_matrix, bias, firing_rate_per_bin, snr = gen_poisson(
+observations, C, bias, firing_rate_per_bin, snr = gen_poisson_observations(
     x=latent_trajectory,
     C=None,
     d_neurons=num_neurons,
