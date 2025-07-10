@@ -59,5 +59,6 @@ def plot_spike_train(
     if output_filename is not None:
         plt.savefig(f"{output_filename}", dpi=300, bbox_inches="tight")
         print(f"Plot saved to: {output_filename}")
-
-    return fig
+        plt.close()
+    else:
+        return fig
