@@ -29,7 +29,7 @@ def plot_spike_train(
     ]
 
     fig, (spike_ax, latent_ax, rate_ax) = plt.subplots(
-        3, 1, sharex=True, figsize=(12, 6), gridspec_kw={"height_ratios": [3, 1, 1]}
+        3, 1, figsize=(12, 6), gridspec_kw={"height_ratios": [3, 1, 1]}
     )
 
     for neuron_idx, neuron_spikes in enumerate(spike_times):
@@ -40,10 +40,12 @@ def plot_spike_train(
     spike_ax.set_ylim(-1, num_neurons)
     spike_ax.set_ylabel("Neurons")
     spike_ax.xaxis.set_ticklabels([])
+    spike_ax.set_xlim(time_range[0], time_range[-1])
 
     latent_ax.plot(time_range, x)
     latent_ax.set_xlabel("Time (s)")
     latent_ax.set_ylabel("Latents")
+    latent_ax.xaxis.set_ticklabels([])
     latent_ax.set_xlim(time_range[0], time_range[-1])
 
     rate_ax.plot(time_range, firing_rates)
@@ -52,5 +54,9 @@ def plot_spike_train(
     rate_ax.set_xlim(time_range[0], time_range[-1])
 
     plt.subplots_adjust(hspace=0.05)
+
     if output_filename is not None:
-        plt.savefig(f"../figs/{output_filename}.pdf")
+        plt.savefig(f"{output_filename}", dpi=300, bbox_inches='tight')
+        print(f"Plot saved to: {output_filename}")
+
+    return fig
