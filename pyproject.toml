@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neurofisherSNR"
+version = "0.2"
+description = "A package for generating log-linear Poisson neural observations."
+authors = [
+    { name = "Hyungju Jeon", email = "hyungju.jeon@research.fchampalimaud.org" },
+    { name = "Il Memming Park", email = "memming.park@research.fchampalimaud.org" }
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "numpy>=1.18",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+]
+
+[project.urls]
+Homepage = "https://github.com/catniplab/neurofisherSNR" 
