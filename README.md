@@ -97,9 +97,9 @@ Generate log-linear Poisson observations from a Gaussian Process (GP) latent tra
 python demo/simulate_observation_gp.py
 ```
 
-Generate observations from a 2D Ring latent trajectory:
+Generate observations from a 2D oscillation latent trajectory:
 ```bash
-python demo/simulate_observation_ring.py
+python demo/simulate_observation_oscillation.py
 ```
 
 ---

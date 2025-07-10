@@ -34,7 +34,8 @@ def generate_gp_trajectory(time_range, d_latent, lengthscale=1.0):
 
     # Generate samples from multivariate normal
     L = np.linalg.cholesky(K)
-    latent_trajectory = np.dot(L, np.random.randn(time_range.shape[0], d_latent))
+    latent_trajectory = np.dot(
+        L, np.random.randn(time_range.shape[0], d_latent))
 
     # Normalize
     latent_trajectory -= np.mean(latent_trajectory, axis=0)
@@ -43,8 +44,8 @@ def generate_gp_trajectory(time_range, d_latent, lengthscale=1.0):
     return latent_trajectory
 
 
-def generate_ring_trajectory(time_range, w=1.0, radius=1.0):
-    """Generate latent trajectory using ring model.
+def generate_oscillation_trajectory(time_range, w=1.0, radius=1.0):
+    """Generate latent trajectory from a perfect oscillation.
 
     Parameters
     ----------
@@ -53,7 +54,7 @@ def generate_ring_trajectory(time_range, w=1.0, radius=1.0):
     w : float, optional
         Angular frequency, by default 1.0
     radius : float, optional
-        Radius of the ring, by default 1.0
+        Radius of the oscillation, by default 1.0
 
     Returns
     -------
@@ -62,7 +63,8 @@ def generate_ring_trajectory(time_range, w=1.0, radius=1.0):
     """
     # Generate random angles
     latent_trajectory = np.vstack(
-        [np.sin(2 * np.pi * w * time_range), np.cos(2 * np.pi * w * time_range)]
+        [np.sin(2 * np.pi * w * time_range),
+         np.cos(2 * np.pi * w * time_range)]
     ).T
     latent_trajectory *= radius
     latent_trajectory = latent_trajectory / np.std(latent_trajectory, axis=0)
