@@ -12,6 +12,12 @@ from neurofisher.utils import safe_normalize, update_bias
 def compute_coherence(C):
     """Compute coherence of loading matrix.
 
+    Coherence is defined as the maximum absolute value of the off-diagonal entries of the normalized correlation matrix
+    of the columns of C. Mathematically, for a matrix C with columns c_i, the coherence μ is:
+        μ(C) = max_{i ≠ j} |<c_i, c_j>| / (||c_i|| * ||c_j||)
+    where <c_i, c_j> is the inner product between columns i and j, and ||c_i|| is the norm of column i.
+    See: https://en.wikipedia.org/wiki/Coherence_(signal_processing)
+
     Parameters
     ----------
     C : ndarray
@@ -161,7 +167,7 @@ def optimize_C(
     Raises:
         ValueError: If tgt_snr is invalid or if search fails to converge
     """
-    if tol <= 0 or tol >= 1:
+    if tol <= 0.0 or tol >= 1.0:
         raise ValueError("Tolerance must be between 0 and 1")
 
     # Initial bounds for gain
@@ -318,115 +324,3 @@ def initialize_C(d_latent, d_neurons, p_coh, p_sparse=0.0, C=None):
     C = safe_normalize(C)
     C[np.isnan(C)] = 0
     return C
-
-
-def scale_C(
-    x,
-    C,
-    b,
-    tgt_rate,
-    tgt_snr,
-    snr_fn,
-    max_iter=40,
-    tol=0.1,
-    min_gain=0.5,
-    max_gain=1.0,
-    verbose=False,
-):
-    """Uniformly scale the loading matrix to match the target SNR using bisection search.
-
-    Args:
-        x: The latent trajectory matrix
-        C: The loading matrix to scale
-        b: The bias vector
-        tgt_rate: Target firing rate per bin
-        tgt_snr: Target signal-to-noise ratio in dB
-        snr_fn: Function to compute SNR
-        max_iter: Maximum number of bisection iterations
-        tol: Relative tolerance for SNR matching (e.g., 0.1 means 10% tolerance)
-        min_gain: Initial minimum gain for search
-        max_gain: Initial maximum gain for search
-        verbose: Whether to print debug information
-
-    Returns:
-        Tuple of (scaled_C, updated_b, achieved_snr)
-
-    Raises:
-        ValueError: If tgt_snr is invalid or if search fails to converge
-    """
-    if tol <= 0.0 or tol >= 1.0:
-        raise ValueError("Tolerance must be between 0 and 1")
-
-    # Initial bounds for gain
-    curr_min_gain = min_gain
-    curr_max_gain = max_gain
-
-    # Find initial bounds that contain the solution
-    for _ in range(10):  # Limit initial search iterations
-        try:
-            snr, _ = snr_fn(x, C * curr_max_gain, b, tgt_rate)
-            if snr > tgt_snr:
-                break
-        except np.linalg.LinAlgError:
-            pass  # If singular, try larger gain
-        curr_max_gain *= 2.0
-
-    for _ in range(10):  # Limit initial search iterations
-        try:
-            snr, _ = snr_fn(x, C * curr_min_gain, b, tgt_rate)
-            if snr < tgt_snr:
-                break
-        except np.linalg.LinAlgError:
-            pass  # If singular, try smaller gain
-        curr_min_gain *= 0.5
-
-    # Bisection search
-    best_snr = float("inf")
-    best_gain = None
-    best_b = None
-
-    for i in range(max_iter):
-        curr_gain = (curr_min_gain + curr_max_gain) / 2
-        try:
-            snr, curr_b = snr_fn(x, C * curr_gain, b, tgt_rate)
-
-            # Keep track of best solution
-            if abs(snr - tgt_snr) < abs(best_snr - tgt_snr):
-                best_snr = snr
-                best_gain = curr_gain
-                best_b = curr_b
-
-            # Check for convergence
-            rel_err = abs(snr - tgt_snr) / abs(tgt_snr)
-            if rel_err <= tol:
-                if verbose:
-                    print(
-                        f"Converged after {i + 1} iterations with relative error {rel_err:.2%}"
-                    )
-                return C * curr_gain, curr_b, snr
-
-            # Update search bounds
-            if snr > tgt_snr:
-                curr_max_gain = curr_gain
-            else:
-                curr_min_gain = curr_gain
-        except np.linalg.LinAlgError:
-            # If singular, try smaller gain
-            curr_max_gain = curr_gain
-            continue
-
-        # Check if search bounds are too close
-        if (curr_max_gain - curr_min_gain) / curr_min_gain < 1e-6:
-            if verbose:
-                print(f"Search bounds converged after {i + 1} iterations")
-            break
-
-    # If we didn't find a solution within tolerance, use the best one found
-    if best_gain is not None:
-        if verbose:
-            print(
-                f"Using best solution found: SNR = {best_snr:.2f} dB (target: {tgt_snr:.2f} dB)"
-            )
-        return C * best_gain, best_b, best_snr
-
-    raise ValueError(f"Failed to find solution for target SNR {tgt_snr} dB")
