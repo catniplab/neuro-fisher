@@ -5,6 +5,7 @@
 *.fdb_latexmk
 *.bbl
 *.blg
+*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
