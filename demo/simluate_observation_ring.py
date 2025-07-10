@@ -1,9 +1,10 @@
-# %%
 # Generating log-linear Poisson observations from 2D Ring latent trajectory given Fisher Information SNR bound
 import numpy as np
+
 from neurofisher.latent_dynamics import generate_ring_trajectory
 from neurofisher.observation import gen_poisson_observations
-from neurofisher.vis_utils import *
+from neurofisher.snr import compute_instantaneous_snr
+from neurofisher.vis_utils import plot_spike_train
 
 np.random.seed(2)
 
@@ -27,7 +28,7 @@ target_rate_per_bin = 20.0 * dt  # (target_firing_rate in Hz * dt)
 target_snr = 3.0  # dB
 num_neurons = 10
 
-observations, loading_matrix, bias, firing_rate_per_bin, snr = gen_poisson_observations(
+observations, C, bias, firing_rate_per_bin, snr = gen_poisson_observations(
     x=latent_trajectory,
     C=None,
     d_neurons=num_neurons,
@@ -49,5 +50,5 @@ plot_spike_train(
     dt=dt,
     time_range=time_range,
     firing_rates=firing_rate_per_bin / dt,  # Hz
-    output_filename=None,
+    output_filename="ring_spike_train.png",
 )
