@@ -6,8 +6,7 @@ including computing coherence, and scaling loading matrices to achieve target si
 
 import numpy as np
 
-from neurofisher.snr import compute_instantaneous_snr
-from neurofisher.utils import compute_firing_rate, safe_normalize, update_bias
+from neurofisher.utils import safe_normalize, update_bias
 
 
 def compute_coherence(C):
@@ -431,62 +430,3 @@ def scale_C(
         return C * best_gain, best_b, best_snr
 
     raise ValueError(f"Failed to find solution for target SNR {tgt_snr} dB")
-
-
-def gen_C(d_latent, d_neurons, p_coh, p_sparse=0.0, C=None):
-    """Generate loading matrix with controllable coherence and sparsity.
-
-    Parameters
-    ----------
-    d_latent : int
-        Latent dimension
-    d_neurons : int
-        Number of neurons
-    p_coh : float
-        Target coherence
-    p_sparse : float, optional
-        Sparsity probability, by default 0
-    C : ndarray, optional
-        Initial matrix, by default None
-
-    Returns
-    -------
-    ndarray
-        Generated loading matrix
-    """
-    if C is None:
-        C = np.random.randn(d_latent, d_neurons)
-        C = C * (np.random.rand(d_latent, d_neurons) > p_sparse)
-        C = safe_normalize(C)
-        C[np.isnan(C)] = 0
-
-    n_iter = 15
-    n_inner = 1000
-    rho = 0.5
-    eta = 1.1
-    lbda = 0.9
-    alpha = lbda * rho
-
-    for _ in range(n_iter):
-        for _ in range(n_inner):
-            coh = compute_coherence(C)
-            if coh < p_coh:
-                C = safe_normalize(C)
-                return C
-
-            vv = (C.T @ C - np.eye(d_neurons)) / rho
-            v = project_l1ball(vv.flatten(), s=1)
-            v_mat = np.reshape(v, (d_neurons, d_neurons))
-
-            mm = C - alpha * C @ (v_mat + v_mat.T)
-            C = safe_normalize(mm)
-        rho = rho / eta
-        alpha = lbda * rho
-
-    if coh >= p_coh:
-        print(
-            f"WARNING: target Coherence {p_coh} not reached, Current Coherence {coh}")
-
-    C = safe_normalize(C)
-    C[np.isnan(C)] = 0
-    return C
