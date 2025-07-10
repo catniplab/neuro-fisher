@@ -14,7 +14,7 @@ def compute_firing_rate(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> np.ndar
     CT : ndarray
         Loading matrix (d_latent, d_neurons)
     b : ndarray
-        Bias vector (1, d_neurons) or (n_timepoints, d_neurons)
+        Bias vector (1, d_neurons)
 
     Returns
     -------
@@ -27,9 +27,11 @@ def compute_firing_rate(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> np.ndar
     assert (
         isinstance(CT, np.ndarray) and CT.ndim == 2
     ), "CT must be 2D ndarray (d_latent, d_neurons)"
+    if isinstance(b, np.ndarray) and b.ndim == 1:
+        b = b.reshape(1, -1)
     assert (
-        isinstance(b, np.ndarray) and b.ndim == 2
-    ), "b must be 2D ndarray (1, d_neurons) or (n_timepoints, d_neurons)"
+        isinstance(b, np.ndarray) and b.ndim == 2 and b.shape[0] == 1
+    ), "b must be 2D ndarray (1, d_neurons)"
     return np.exp(x @ CT + b)
 
 
@@ -45,7 +47,7 @@ def bias_matching_firing_rate(
     CT : ndarray
         Loading matrix (d_latent, d_neurons)
     b : ndarray
-        Bias vector (1, d_neurons) or (n_timepoints, d_neurons)
+        Bias vector (1, d_neurons)
     tgt_rate : float, optional
         Target firing rate, by default 0.05
 
@@ -60,15 +62,16 @@ def bias_matching_firing_rate(
     assert (
         isinstance(CT, np.ndarray) and CT.ndim == 2
     ), "CT must be 2D ndarray (d_latent, d_neurons)"
+    if isinstance(b, np.ndarray) and b.ndim == 1:
+        b = b.reshape(1, -1)
     assert (
-        isinstance(b, np.ndarray) and b.ndim == 1
-    ), "b must be 1D ndarray (d_neurons,)"
+        isinstance(b, np.ndarray) and b.ndim == 2 and b.shape[0] == 1
+    ), "b must be 2D ndarray (1, d_neurons)"
     mean_rate = compute_firing_rate(x, CT, b).mean(axis=0)
     assert b.size == mean_rate.size
     # Handle zero rates
     mask = mean_rate > 0
-    b[mask] = b[mask] + np.log(tgt_rate / mean_rate[mask])
-
+    b[0, mask] = b[0, mask] + np.log(tgt_rate / mean_rate[mask])
     # Reshape back to original shape
     new_rates = compute_firing_rate(x, CT, b)
     return b, new_rates

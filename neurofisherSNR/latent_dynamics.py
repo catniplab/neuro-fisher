@@ -40,12 +40,12 @@ def generate_gp_trajectory(
     K += 1e-6 * np.eye(n_timepoints)
     # Generate samples from multivariate normal
     L = np.linalg.cholesky(K)
-    latent_trajectory = np.dot(L, np.random.randn(n_timepoints, d_latent))
+    x = np.dot(L, np.random.randn(n_timepoints, d_latent))
     # Normalize
-    latent_trajectory -= np.mean(latent_trajectory, axis=0)
-    latent_trajectory = latent_trajectory / np.std(latent_trajectory, axis=0)
-    assert latent_trajectory.shape == (n_timepoints, d_latent), "Output shape mismatch"
-    return latent_trajectory
+    x -= np.mean(x, axis=0)
+    x = x / np.std(x, axis=0)
+    assert x.shape == (n_timepoints, d_latent), "Output shape mismatch"
+    return x
 
 
 def generate_oscillation_trajectory(

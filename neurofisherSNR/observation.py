@@ -8,9 +8,9 @@ from typing import Callable, Optional, Tuple
 
 import numpy as np
 
-from neurofisher.optimize import initialize_C, optimize_C
-from neurofisher.snr import SNR_bound_instantaneous
-from neurofisher.utils import bias_matching_firing_rate, compute_firing_rate
+from neurofisherSNR.optimize import initialize_C, optimize_C
+from neurofisherSNR.snr import SNR_bound_instantaneous
+from neurofisherSNR.utils import bias_matching_firing_rate, compute_firing_rate
 
 
 def gen_poisson_observations(
@@ -78,12 +78,12 @@ def gen_poisson_observations(
         assert C.shape[0] == d_neurons, "C must have d_neurons in the first dimension"
         assert C.shape[1] == d_latent, "C must have d_latent in the second dimension"
     # Check if latent trajectory has unit variance and zero mean
-    if not np.all(np.isclose(np.std(x, axis=0), 1)):
-        print("WARNING: latent trajectory must have unit variance. Normalizing...")
-        x = x / np.std(x, axis=0)
     if not np.all(np.isclose(np.mean(x, axis=0), 0)):
         print("WARNING: latent trajectory must have zero mean. Subtracting mean...")
         x = x - np.mean(x, axis=0)
+    if not np.all(np.isclose(np.std(x, axis=0), 1)):
+        print("WARNING: latent trajectory must have unit variance. Normalizing...")
+        x = x / np.std(x, axis=0)
 
     if C is None:
         CT = initialize_C(d_latent, d_neurons, p_coh, p_sparse)
@@ -96,14 +96,13 @@ def gen_poisson_observations(
             CT.shape[1] == d_neurons
         ), "Loading matrix must have same number of columns as number of neurons"
 
-    # b = 1.0 * np.random.rand(1, d_neurons) - np.log(tgt_rate_per_bin)
     b = np.zeros((1, d_neurons))
     rates = compute_firing_rate(x, CT, b)
     b, rates = bias_matching_firing_rate(x, CT, b, tgt_rate=tgt_rate_per_bin)
 
-    CT, b, snr = optimize_C(
+    C, b, snr = optimize_C(
         x=x,
-        CT=CT,
+        C=CT.T,
         b=b,
         tgt_rate_per_bin=tgt_rate_per_bin,
         max_rate_per_bin=max_rate_per_bin,
@@ -112,7 +111,6 @@ def gen_poisson_observations(
         priority=priority,
         verbose=verbose,
     )
-    rates = compute_firing_rate(x, CT, b)
+    rates = compute_firing_rate(x, C.T, b)
     obs = np.random.poisson(rates)
-
-    return obs, CT.T, b, rates, snr
+    return obs, C, b, rates, snr

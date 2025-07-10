@@ -6,7 +6,7 @@ This module provides functions for computing SNR using Fisher information.
 import numpy as np
 from typing import Any
 
-from neurofisher.utils import compute_firing_rate
+from neurofisherSNR.utils import compute_firing_rate
 
 
 def SNR_bound_instantaneous(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> float:
@@ -21,7 +21,7 @@ def SNR_bound_instantaneous(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> flo
     CT : ndarray
         Loading matrix (d_latent, d_neurons)
     b : ndarray
-        Bias vector (1, d_neurons) or (n_timepoints, d_neurons)
+        Bias vector (1, d_neurons)
 
     Returns
     -------
@@ -34,16 +34,16 @@ def SNR_bound_instantaneous(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> flo
     assert (
         isinstance(CT, np.ndarray) and CT.ndim == 2
     ), "CT must be 2D ndarray (d_latent, d_neurons)"
+    if isinstance(b, np.ndarray) and b.ndim == 1:
+        b = b.reshape(1, -1)
     assert (
-        isinstance(b, np.ndarray) and b.ndim == 2
-    ), "b must be 2D ndarray (1, d_neurons) or (n_timepoints, d_neurons)"
+        isinstance(b, np.ndarray) and b.ndim == 2 and b.shape[0] == 1
+    ), "b must be 2D ndarray (1, d_neurons)"
     firing_rates = compute_firing_rate(x, CT, b)
-
     # total power should be d_latent if normalized latents are used
     x_power = np.sum(np.mean(x**2, axis=0))
     d_latent = x.shape[1]
     assert d_latent == CT.shape[0]
-
     invFI = 0.0
     for firing_rate in firing_rates:
         CC = CT @ np.diag(firing_rate) @ CT.T + np.eye(d_latent) * 1e-6
@@ -51,7 +51,5 @@ def SNR_bound_instantaneous(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> flo
         invCC[invCC > 1e6] = 0
         invFI += np.trace(invCC)
     invFI = invFI / firing_rates.shape[0]  # average over time
-
     SNR_dB = 10 * np.log10(x_power / invFI)
-
     return SNR_dB

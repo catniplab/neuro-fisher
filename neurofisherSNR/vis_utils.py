@@ -4,6 +4,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import Optional
 
 # Matplotlib settings
 plt.rcParams["text.usetex"] = False

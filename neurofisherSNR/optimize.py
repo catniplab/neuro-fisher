@@ -116,7 +116,7 @@ def adjust_gain(
     CT : ndarray
         Loading matrix
     b : ndarray
-        Bias vector
+        Bias vector (1, num_neurons)
     tgt_rate_per_bin : float
         Target firing rate per bin
     max_rate_per_bin : float
@@ -129,7 +129,11 @@ def adjust_gain(
     """
     assert isinstance(x, np.ndarray) and x.ndim == 2, "x must be 2D ndarray"
     assert isinstance(CT, np.ndarray) and CT.ndim == 2, "CT must be 2D ndarray"
-    assert isinstance(b, np.ndarray) and b.ndim == 2, "b must be 2D ndarray"
+    if isinstance(b, np.ndarray) and b.ndim == 1:
+        b = b.reshape(1, -1)
+    assert (
+        isinstance(b, np.ndarray) and b.ndim == 2 and b.shape[0] == 1
+    ), "b must be 2D ndarray (1, num_neurons)"
     assert isinstance(current_gain, float) or isinstance(
         current_gain, int
     ), "current_gain must be float or int"
@@ -138,7 +142,6 @@ def adjust_gain(
     Cx = (x @ CT).max(axis=0)
     CT = CT * current_gain
     b, firing_rates = bias_matching_firing_rate(x, CT, b, tgt_rate=tgt_rate_per_bin)
-
     adjusted_idx = firing_rates.max(axis=0) > max_rate_per_bin
     adjusted_gain = np.ones(CT.shape[1]) * current_gain
     adjusted_gain[adjusted_idx] = (
@@ -146,13 +149,12 @@ def adjust_gain(
         + np.log(max_rate_per_bin / firing_rates.max(axis=0)[adjusted_idx])
         / Cx[adjusted_idx]
     )
-
     return adjusted_gain, adjusted_idx
 
 
 def optimize_C(
     x: np.ndarray,
-    CT: np.ndarray,
+    C: np.ndarray,
     b: np.ndarray,
     tgt_rate_per_bin: float,
     max_rate_per_bin: float,
@@ -169,8 +171,8 @@ def optimize_C(
 
     Args:
         x: The latent trajectory matrix
-        CT: The loading matrix to scale
-        b: The bias vector
+        C: The loading matrix to scale
+        b: The bias vector (1, num_neurons)
         tgt_rate_per_bin: Target firing rate per bin
         max_rate_per_bin: Maximum firing rate per bin
         tgt_snr: Target signal-to-noise ratio in dB
@@ -188,8 +190,13 @@ def optimize_C(
         ValueError: If tgt_snr is invalid or if search fails to converge
     """
     assert isinstance(x, np.ndarray) and x.ndim == 2, "x must be 2D ndarray"
-    assert isinstance(CT, np.ndarray) and CT.ndim == 2, "CT must be 2D ndarray"
-    assert isinstance(b, np.ndarray) and b.ndim == 2, "b must be 2D ndarray"
+    assert isinstance(C, np.ndarray) and C.ndim == 2, "C must be 2D ndarray"
+    if isinstance(b, np.ndarray) and b.ndim == 1:
+        b = b.reshape(1, -1)
+        print("WARNING: b is reshaped to (1, num_neurons)")
+    assert (
+        isinstance(b, np.ndarray) and b.ndim == 2 and b.shape[0] == 1
+    ), "b must be 2D ndarray (1, num_neurons)"
     assert tgt_rate_per_bin > 0.0, "tgt_rate_per_bin must be positive"
     assert max_rate_per_bin > 0.0, "max_rate_per_bin must be positive"
     assert isinstance(tgt_snr, float) or isinstance(
@@ -209,6 +216,7 @@ def optimize_C(
     # Initial bounds for gain
     curr_min_gain = min_gain
     curr_max_gain = max_gain
+    CT = C.T
 
     prev_snr = -float("inf")
     # Find initial bounds that contain the solution
@@ -280,7 +288,7 @@ def optimize_C(
                     print(
                         f"Converged after {i + 1} iterations with relative error {rel_err:.2%}"
                     )
-                return CT * adjusted_gain, curr_b, snr
+                return (CT * adjusted_gain).T, curr_b, snr
 
             # Update search bounds
             curr_min_gain = curr_gain
@@ -307,7 +315,7 @@ def optimize_C(
                 x, CT * best_gain, best_b, tgt_rate_per_bin
             )
 
-        return CT * best_gain, best_b, best_snr
+        return (CT * best_gain).T, best_b, best_snr
 
     raise ValueError(f"Failed to find solution for target SNR {tgt_snr} dB")
 
@@ -390,4 +398,4 @@ def initialize_C(
 
     CT = safe_normalize(CT)
     CT[np.isnan(CT)] = 0
-    return CT
+    return CT.T
