@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
 setup(
-    name="neurofisher",
+    name="neurofisherSNR",
     packages=find_packages(),
 )
