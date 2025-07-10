@@ -1,10 +1,10 @@
 # Generating log-linear Poisson observations from GP latent trajectory given Fisher Information SNR bound
 import numpy as np
 
-from neurofisher.latent_dynamics import generate_gp_trajectory
-from neurofisher.observation import gen_poisson_observations
-from neurofisher.snr import SNR_bound_instantaneous
-from neurofisher.vis_utils import plot_spike_train
+from neurofisherSNR.latent_dynamics import generate_gp_trajectory
+from neurofisherSNR.observation import gen_poisson_observations
+from neurofisherSNR.snr import SNR_bound_instantaneous
+from neurofisherSNR.vis_utils import plot_spike_train
 
 np.random.seed(2)
 # Default parameters

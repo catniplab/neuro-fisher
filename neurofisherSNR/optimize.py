@@ -7,8 +7,8 @@ including computing coherence, and scaling loading matrices to achieve target si
 import numpy as np
 from typing import Optional, Callable, Tuple
 
-from neurofisher.utils import bias_matching_firing_rate, safe_normalize
-from neurofisher.snr import SNR_bound_instantaneous
+from neurofisherSNR.utils import bias_matching_firing_rate, safe_normalize
+from neurofisherSNR.snr import SNR_bound_instantaneous
 
 
 def compute_coherence(CT: np.ndarray) -> float:
@@ -171,10 +171,10 @@ def optimize_C(
         x: The latent trajectory matrix
         CT: The loading matrix to scale
         b: The bias vector
-        tgt_rate: Target firing rate per bin
+        tgt_rate_per_bin: Target firing rate per bin
+        max_rate_per_bin: Maximum firing rate per bin
         tgt_snr: Target signal-to-noise ratio in dB
         snr_fn: Function to compute SNR
-        max_rate: Maximum firing rate
         max_iter: Maximum number of bisection iterations
         tol: Relative tolerance for SNR matching (e.g., 0.1 means 10% tolerance)
         min_gain: Initial minimum gain for search
@@ -353,13 +353,12 @@ def initialize_C(
         assert (
             isinstance(C, np.ndarray) and C.ndim == 2
         ), "C must be 2D ndarray if provided"
-    if C is None:
+        CT = C.T
+    else:
         CT = np.random.randn(d_latent, d_neurons)
         CT = CT * (np.random.rand(d_latent, d_neurons) > p_sparse)
         CT = safe_normalize(CT)
         CT[np.isnan(CT)] = 0
-    else:
-        CT = C.T
 
     n_iter = 15
     n_inner = 1000

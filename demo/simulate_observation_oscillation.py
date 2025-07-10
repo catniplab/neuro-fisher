@@ -1,10 +1,10 @@
 # Generating log-linear Poisson observations from 2D oscillation latent trajectory given Fisher Information SNR bound
 import numpy as np
 
-from neurofisher.latent_dynamics import generate_oscillation_trajectory
-from neurofisher.observation import gen_poisson_observations
-from neurofisher.snr import SNR_bound_instantaneous
-from neurofisher.vis_utils import plot_spike_train
+from neurofisherSNR.latent_dynamics import generate_oscillation_trajectory
+from neurofisherSNR.observation import gen_poisson_observations
+from neurofisherSNR.snr import SNR_bound_instantaneous
+from neurofisherSNR.vis_utils import plot_spike_train
 
 np.random.seed(2)
 
@@ -15,10 +15,7 @@ time_range = np.linspace(0, time_duration, num_steps)
 dt = time_range[1] - time_range[0]
 
 # Generating Ring latent trajectory
-latent_trajectory = generate_oscillation_trajectory(
-    time_range=time_range,
-    w=1.0
-)
+latent_trajectory = generate_oscillation_trajectory(time_range=time_range, w=1.0)
 
 # Generate observations
 p_sparse = 0.1
