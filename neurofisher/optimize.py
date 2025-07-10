@@ -5,8 +5,9 @@ including computing coherence, and scaling loading matrices to achieve target si
 """
 
 import numpy as np
-from neurofisher.utils import safe_normalize, compute_firing_rate, update_bias
+
 from neurofisher.snr import compute_instantaneous_snr
+from neurofisher.utils import compute_firing_rate, safe_normalize, update_bias
 
 
 def compute_coherence(C):
@@ -259,7 +260,7 @@ def optimize_C(
     raise ValueError(f"Failed to find solution for target SNR {tgt_snr} dB")
 
 
-def initialize_C(d_latent, d_neurons, p_coh, p_sparse=0, C=None):
+def initialize_C(d_latent, d_neurons, p_coh, p_sparse=0.0, C=None):
     """Generate loading matrix with controllable coherence and sparsity.
 
     Parameters
@@ -312,7 +313,8 @@ def initialize_C(d_latent, d_neurons, p_coh, p_sparse=0, C=None):
         alpha = lbda * rho
 
     if coh >= p_coh:
-        print(f"WARNING: target Coherence {p_coh} not reached, Current Coherence {coh}")
+        print(
+            f"WARNING: target Coherence {p_coh} not reached, Current Coherence {coh}")
 
     C = safe_normalize(C)
     C[np.isnan(C)] = 0
@@ -353,7 +355,7 @@ def scale_C(
     Raises:
         ValueError: If tgt_snr is invalid or if search fails to converge
     """
-    if tol <= 0 or tol >= 1:
+    if tol <= 0.0 or tol >= 1.0:
         raise ValueError("Tolerance must be between 0 and 1")
 
     # Initial bounds for gain
@@ -431,7 +433,7 @@ def scale_C(
     raise ValueError(f"Failed to find solution for target SNR {tgt_snr} dB")
 
 
-def gen_C(d_latent, d_neurons, p_coh, p_sparse=0, C=None):
+def gen_C(d_latent, d_neurons, p_coh, p_sparse=0.0, C=None):
     """Generate loading matrix with controllable coherence and sparsity.
 
     Parameters
@@ -482,7 +484,8 @@ def gen_C(d_latent, d_neurons, p_coh, p_sparse=0, C=None):
         alpha = lbda * rho
 
     if coh >= p_coh:
-        print(f"WARNING: target Coherence {p_coh} not reached, Current Coherence {coh}")
+        print(
+            f"WARNING: target Coherence {p_coh} not reached, Current Coherence {coh}")
 
     C = safe_normalize(C)
     C[np.isnan(C)] = 0
@@ -525,8 +528,8 @@ def gen_poisson_observations(
     tuple
         (observations, C, b, rates, snr)
     """
-    assert p_sparse >= 0, "p_sparse must be between 0 and 1"
-    assert p_sparse <= 1, "p_sparse must be between 0 and 1"
+    assert p_sparse >= 0.0, "p_sparse must be between 0 and 1"
+    assert p_sparse <= 1.0, "p_sparse must be between 0 and 1"
     assert p_coh >= np.sqrt(
         (d_neurons - x.shape[1]) / (x.shape[1] * (d_neurons - 1))
     ), f"p_coh must be greater than sqrt((d_neurons - d_latent) / (d_latent * (d_neurons - 1))) = {np.sqrt((d_neurons - x.shape[1]) / (x.shape[1] * (d_neurons - 1))):.2f}"
