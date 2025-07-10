@@ -5,10 +5,10 @@ This module provides functions for computing SNR using Fisher information.
 
 import numpy as np
 
-from neurofisher.utils import compute_firing_rate, update_bias
+from neurofisher.utils import compute_firing_rate
 
 
-def SNR_bound_instantaneous(x, C, b, tgt_rate_per_bin):
+def SNR_bound_instantaneous(x, C, b):
     """Compute SNR about the latent trajectoryusing instantaneous Fisher information.
 
     Parameters
@@ -19,15 +19,12 @@ def SNR_bound_instantaneous(x, C, b, tgt_rate_per_bin):
         Loading matrix
     b : ndarray
         Bias vector
-    tgt_rate_per_bin : float
-        Target firing rate per bin
 
     Returns
     -------
     float
         SNR in dB
     """
-    b, firing_rates = update_bias(x, C, b, tgt_rate=tgt_rate_per_bin)
     firing_rates = compute_firing_rate(x, C, b)
 
     SNR = 0
@@ -39,4 +36,4 @@ def SNR_bound_instantaneous(x, C, b, tgt_rate_per_bin):
     SNR = SNR / firing_rates.shape[0]
     SNR = 10 * np.log10(C.shape[0] / SNR)
 
-    return SNR, b
+    return SNR

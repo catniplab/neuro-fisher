@@ -178,7 +178,9 @@ def optimize_C(
     # Find initial bounds that contain the solution
     for _ in range(10):  # Limit initial search iterations
         try:
-            snr, _ = snr_fn(x, C * curr_max_gain, b, tgt_rate_per_bin)
+            b_tmp, _ = update_bias(x, C * curr_max_gain,
+                                   b, tgt_rate=tgt_rate_per_bin)
+            snr = snr_fn(x, C * curr_max_gain, b_tmp)
             if snr > tgt_snr or snr < prev_snr:
                 break
         except np.linalg.LinAlgError:
@@ -190,7 +192,9 @@ def optimize_C(
     prev_snr = float("inf")
     for _ in range(10):  # Limit initial search iterations
         try:
-            snr, _ = snr_fn(x, C * curr_min_gain, b, tgt_rate_per_bin)
+            b_tmp, _ = update_bias(x, C * curr_max_gain,
+                                   b, tgt_rate=tgt_rate_per_bin)
+            snr = snr_fn(x, C * curr_min_gain, b_tmp)
             if snr < tgt_snr or snr > prev_snr:
                 break
         except np.linalg.LinAlgError:
@@ -211,7 +215,9 @@ def optimize_C(
                 x, C, curr_b, curr_gain, tgt_rate_per_bin, max_rate_per_bin
             )
             curr_C = C * adjusted_gain
-            snr, curr_b = snr_fn(x, curr_C, curr_b, tgt_rate_per_bin)
+            curr_b, _ = update_bias(
+                x, curr_C, b, tgt_rate=tgt_rate_per_bin)
+            snr = snr_fn(x, curr_C, curr_b)
             if priority == "max":
                 recalibrated_gain, _ = adjust_gain(
                     x, curr_C, curr_b, 1, tgt_rate_per_bin, max_rate_per_bin
