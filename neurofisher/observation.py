@@ -9,7 +9,7 @@ from typing import Callable, Optional
 import numpy as np
 
 from neurofisher.optimize import initialize_C, optimize_C
-from neurofisher.snr import compute_instantaneous_snr
+from neurofisher.snr import SNR_bound_instantaneous
 from neurofisher.utils import compute_firing_rate, update_bias
 
 
@@ -23,7 +23,7 @@ def gen_poisson_observations(
     p_coh: float = 0.5,
     p_sparse: float = 0.1,
     tgt_snr: float = 10.0,
-    snr_fn: Callable = compute_instantaneous_snr,
+    snr_fn: Callable = SNR_bound_instantaneous,
     verbose: bool = False,
 ):
     """Generate Poisson observations with controlled SNR and firing rate.

@@ -4,11 +4,12 @@ This module provides functions for computing SNR using Fisher information.
 """
 
 import numpy as np
+
 from neurofisher.utils import compute_firing_rate, update_bias
 
 
-def compute_instantaneous_snr(x, C, b, tgt_rate_per_bin):
-    """Compute SNR from instantaneous fisher information.
+def SNR_bound_instantaneous(x, C, b, tgt_rate_per_bin):
+    """Compute SNR about the latent trajectoryusing instantaneous Fisher information.
 
     Parameters
     ----------

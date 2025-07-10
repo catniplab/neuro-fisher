@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from neurofisher.optimize import initialize_C, optimize_C
-from neurofisher.snr import compute_instantaneous_snr
+from neurofisher.snr import SNR_bound_instantaneous
 
 
 class TestOptimizeCDimensions:
@@ -25,7 +25,8 @@ class TestOptimizeCDimensions:
 
         # Create test data
         self.x = np.random.randn(self.time_steps, self.d_latent)
-        self.C = initialize_C(self.d_latent, self.d_neurons, p_coh=0.5, p_sparse=0.0)
+        self.C = initialize_C(
+            self.d_latent, self.d_neurons, p_coh=0.5, p_sparse=0.0)
         self.b = np.random.randn(self.d_neurons)
 
     def test_optimize_C_input_dimensions(self):
@@ -38,7 +39,7 @@ class TestOptimizeCDimensions:
             tgt_rate_per_bin=self.tgt_rate_per_bin,
             max_rate_per_bin=self.max_rate_per_bin,
             tgt_snr=self.tgt_snr,
-            snr_fn=compute_instantaneous_snr,
+            snr_fn=SNR_bound_instantaneous,
             verbose=False
         )
 
@@ -59,7 +60,7 @@ class TestOptimizeCDimensions:
             tgt_rate_per_bin=self.tgt_rate_per_bin,
             max_rate_per_bin=self.max_rate_per_bin,
             tgt_snr=self.tgt_snr,
-            snr_fn=compute_instantaneous_snr,
+            snr_fn=SNR_bound_instantaneous,
             verbose=False
         )
 
@@ -91,7 +92,7 @@ class TestOptimizeCDimensions:
             tgt_rate_per_bin=self.tgt_rate_per_bin,
             max_rate_per_bin=self.max_rate_per_bin,
             tgt_snr=self.tgt_snr,
-            snr_fn=compute_instantaneous_snr,
+            snr_fn=SNR_bound_instantaneous,
             verbose=False
         )
 
@@ -118,14 +119,15 @@ class TestOptimizeCDimensions:
                 tgt_rate_per_bin=self.tgt_rate_per_bin,
                 max_rate_per_bin=self.max_rate_per_bin,
                 tgt_snr=self.tgt_snr,
-                snr_fn=compute_instantaneous_snr,
+                snr_fn=SNR_bound_instantaneous,
                 verbose=False
             )
 
         # Test with mismatched x and C dimensions
         # Wrong latent dimension
         x_wrong = np.random.randn(self.time_steps, self.d_latent + 1)
-        C_correct = np.random.randn(self.d_latent, self.d_neurons)  # Correct size
+        C_correct = np.random.randn(
+            self.d_latent, self.d_neurons)  # Correct size
 
         with pytest.raises(Exception):  # Should raise some kind of error
             optimize_C(
@@ -135,7 +137,7 @@ class TestOptimizeCDimensions:
                 tgt_rate_per_bin=self.tgt_rate_per_bin,
                 max_rate_per_bin=self.max_rate_per_bin,
                 tgt_snr=self.tgt_snr,
-                snr_fn=compute_instantaneous_snr,
+                snr_fn=SNR_bound_instantaneous,
                 verbose=False
             )
 
@@ -148,7 +150,7 @@ class TestOptimizeCDimensions:
             tgt_rate_per_bin=self.tgt_rate_per_bin,
             max_rate_per_bin=self.max_rate_per_bin,
             tgt_snr=self.tgt_snr,
-            snr_fn=compute_instantaneous_snr,
+            snr_fn=SNR_bound_instantaneous,
             verbose=False
         )
 
@@ -175,13 +177,15 @@ class TestOptimizeCDimensions:
             tgt_rate_per_bin=self.tgt_rate_per_bin,
             max_rate_per_bin=self.max_rate_per_bin,
             tgt_snr=self.tgt_snr,
-            snr_fn=compute_instantaneous_snr,
+            snr_fn=SNR_bound_instantaneous,
             verbose=False
         )
 
         # Check that outputs are finite
-        assert np.all(np.isfinite(scaled_C)), "scaled_C contains non-finite values"
-        assert np.all(np.isfinite(updated_b)), "updated_b contains non-finite values"
+        assert np.all(np.isfinite(scaled_C)
+                      ), "scaled_C contains non-finite values"
+        assert np.all(np.isfinite(updated_b)
+                      ), "updated_b contains non-finite values"
         assert np.isfinite(achieved_snr), "achieved_snr is not finite"
 
         # Check that SNR is reasonable (should be positive)

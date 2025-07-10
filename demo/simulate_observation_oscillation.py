@@ -3,7 +3,7 @@ import numpy as np
 
 from neurofisher.latent_dynamics import generate_oscillation_trajectory
 from neurofisher.observation import gen_poisson_observations
-from neurofisher.snr import compute_instantaneous_snr
+from neurofisher.snr import SNR_bound_instantaneous
 from neurofisher.vis_utils import plot_spike_train
 
 np.random.seed(2)
@@ -37,7 +37,7 @@ observations, C, bias, firing_rate_per_bin, snr = gen_poisson_observations(
     p_coh=p_coherence,
     p_sparse=p_sparse,
     tgt_snr=target_snr,
-    snr_fn=compute_instantaneous_snr,
+    snr_fn=SNR_bound_instantaneous,
     priority="mean",
     verbose=True,
 )
