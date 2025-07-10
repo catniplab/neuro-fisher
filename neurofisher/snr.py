@@ -8,10 +8,14 @@ import numpy as np
 from neurofisher.utils import compute_firing_rate
 
 
-def SNR_bound_instantaneous(x, C, b):
+def SNR_bound_instantaneous(
+    x: np.ndarray,
+    C: np.ndarray,
+    b: np.ndarray
+) -> float:
     """Compute SNR about the latent trajectory using instantaneous Fisher information.
 
-    How accurately we can estimate the latent state x from the spikes y of a log-linear Poisson model?
+    How accurately can we estimate the latent state x from the spikes y of a log-linear Poisson model?
 
     Parameters
     ----------
@@ -35,7 +39,7 @@ def SNR_bound_instantaneous(x, C, b):
     assert d_latent == C.shape[0]
 
     invFI = 0.0
-    for i, firing_rate in enumerate(firing_rates):
+    for firing_rate in firing_rates:
         CC = C @ np.diag(firing_rate) @ C.T + np.eye(d_latent) * 1e-6
         invCC = np.linalg.inv(CC)
         invCC[invCC > 1e6] = 0
