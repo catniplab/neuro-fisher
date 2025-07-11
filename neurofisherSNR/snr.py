@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 
-from neurofisherSNR.utils import compute_firing_rate
+from neurofisherSNR.utils import compute_firing_rate, power_to_dB
 
 
 def SNR_bound_instantaneous(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> float:
@@ -27,7 +27,7 @@ def SNR_bound_instantaneous(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> flo
     Returns
     -------
     float
-        SNR in dB
+        SNR bound in dB
     """
     assert (
         isinstance(x, np.ndarray) and x.ndim == 2
@@ -53,6 +53,6 @@ def SNR_bound_instantaneous(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> flo
         invCC[invCC > 1e6] = 0
         invFI += np.trace(invCC)
     invFI = invFI / firing_rates.shape[0]  # average over time
-    SNR_dB = 10 * np.log10(x_power / invFI)
+    SNR_dB = power_to_dB(x_power / invFI)
 
     return SNR_dB

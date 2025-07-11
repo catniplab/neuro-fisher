@@ -1,7 +1,8 @@
 """Utility functions for neural data processing."""
 
-import numpy as np
 from typing import Tuple
+
+import numpy as np
 
 
 def compute_firing_rate(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -32,6 +33,7 @@ def compute_firing_rate(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> np.ndar
     assert (
         isinstance(b, np.ndarray) and b.ndim == 2 and b.shape[0] == 1
     ), f"b must be 2D ndarray (1, d_neurons), got {b.shape}"
+
     return np.exp(x @ CT + b)
 
 
@@ -98,3 +100,55 @@ def safe_normalize(C: np.ndarray, axis: int = 0) -> np.ndarray:
     C_norm = np.zeros_like(C)
     C_norm[:, mask] = C[:, mask] / norm[mask]
     return C_norm
+
+
+def power_to_dB(x):
+    """
+    Convert a scalar or ndarray of power to decibels (dB).
+
+    Parameters
+    ----------
+    x : float or np.ndarray
+        Value(s) of power to convert to dB.
+
+    Returns
+    -------
+    float or np.ndarray
+        Value(s) in dB.
+    """
+    with np.errstate(divide='ignore'):
+        return 10 * np.log10(x)
+
+
+def power_from_dB(dB):
+    """
+    Convert a scalar or ndarray from decibels (dB) to linear units of power.
+
+    Parameters
+    ----------
+    dB : float or np.ndarray
+        Value(s) in dB to convert to linear units of power.
+
+    Returns
+    -------
+    float or np.ndarray
+        Value(s) in linear units of power.
+    """
+    return 10 ** (dB / 10)
+
+
+def powerDb_to_R2(snr_dB):
+    """
+    Convert SNR in dB to R^2 using the formula: R^2 = 1 - SNR^-1 (SNR in linear units).
+
+    Parameters
+    ----------
+    snr_dB : float or np.ndarray
+        SNR value(s) in decibels.
+
+    Returns
+    -------
+    float or np.ndarray
+        R^2 value(s) corresponding to the input SNR.
+    """
+    return 1 - 1 / power_from_dB(snr_dB)
