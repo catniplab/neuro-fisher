@@ -1,11 +1,6 @@
 import numpy as np
 
-from neurofisherSNR.utils import powerDb_to_R2
-
-
-def power_to_dB(power_ratio):
-    """Convert power ratio to dB: SNR_dB = 10 * log10(power_ratio)"""
-    return 10 * np.log10(power_ratio)
+from neurofisherSNR import power_from_dB, power_to_dB, powerDb_to_R2
 
 
 def test_scalar_cases():
@@ -78,4 +73,18 @@ def test_powerDb_to_R2_vector():
     # Check that the computed R² values match expected values
     assert np.allclose(computed_R2, expected_R2, atol=1e-10), (
         f"R² conversion failed: {computed_R2} != {expected_R2}"
+    )
+
+
+def test_round_trip_conversion():
+    """Test round-trip conversion: power → dB → power."""
+    power_ratios = np.array([0.1, 1.0, 10.0, 100.0])
+
+    # Convert to dB and back
+    snr_dB = power_to_dB(power_ratios)
+    power_back = power_from_dB(snr_dB)
+
+    # Check that we get back the original values
+    assert np.allclose(power_ratios, power_back, atol=1e-10), (
+        f"Round-trip conversion failed: {power_ratios} → {power_back}"
     )
