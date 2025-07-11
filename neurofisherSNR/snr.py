@@ -3,8 +3,9 @@
 This module provides functions for computing SNR using Fisher information.
 """
 
-import numpy as np
 from typing import Any
+
+import numpy as np
 
 from neurofisherSNR.utils import compute_firing_rate
 
@@ -17,7 +18,7 @@ def SNR_bound_instantaneous(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> flo
     Parameters
     ----------
     x : ndarray
-        Latent trajectory (unit variance, shape (n_timepoints, d_latent))
+        Latent trajectory (zero-mean, shape (n_timepoints, d_latent))
     CT : ndarray
         Loading matrix (d_latent, d_neurons)
     b : ndarray
@@ -44,6 +45,7 @@ def SNR_bound_instantaneous(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> flo
     x_power = np.sum(np.mean(x**2, axis=0))
     d_latent = x.shape[1]
     assert d_latent == CT.shape[0]
+
     invFI = 0.0
     for firing_rate in firing_rates:
         CC = CT @ np.diag(firing_rate) @ CT.T + np.eye(d_latent) * 1e-6
@@ -52,4 +54,5 @@ def SNR_bound_instantaneous(x: np.ndarray, CT: np.ndarray, b: np.ndarray) -> flo
         invFI += np.trace(invCC)
     invFI = invFI / firing_rates.shape[0]  # average over time
     SNR_dB = 10 * np.log10(x_power / invFI)
+
     return SNR_dB
